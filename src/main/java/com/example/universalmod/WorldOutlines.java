@@ -1,17 +1,17 @@
 package com.example.universalmod;
 
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.RenderLayers;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.VertexRendering;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
+import net.minecraft.util.shape.VoxelShapes;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -49,7 +49,7 @@ public class WorldOutlines {
 
         Vec3d cam = ContainerSearch.cameraPos(mc.gameRenderer.getCamera(), mc);
         VertexConsumerProvider.Immediate buffers = mc.getBufferBuilders().getEntityVertexConsumers();
-        VertexConsumer lines = buffers.getBuffer(RenderLayer.getLines());
+        VertexConsumer lines = buffers.getBuffer(RenderLayers.lines());
         MatrixStack matrices = new MatrixStack();
 
         for (Mark m : marks) {
@@ -58,20 +58,12 @@ public class WorldOutlines {
             // Если у блока нет формы (например, свет), рисуем целый куб.
             BlockState st = mc.world.getBlockState(p);
             VoxelShape shape = st.getOutlineShape(mc.world, p);
-            if (!shape.isEmpty()) {
-                shape.forEachBox((x1, y1, z1, x2, y2, z2) -> draw(matrices, lines, cam,
-                        new Box(p.getX() + x1, p.getY() + y1, p.getZ() + z1,
-                                p.getX() + x2, p.getY() + y2, p.getZ() + z2), m));
-            } else {
-                draw(matrices, lines, cam, new Box(p), m);
-            }
+            if (shape.isEmpty()) shape = VoxelShapes.fullCube();
+            int color = 0xFF000000
+                    | (Math.round(m.r() * 255) << 16) | (Math.round(m.g() * 255) << 8) | Math.round(m.b() * 255);
+            VertexRendering.drawOutline(matrices, lines, shape,
+                    p.getX() - cam.x, p.getY() - cam.y, p.getZ() - cam.z, color, 2.0f);
         }
-        buffers.draw(RenderLayer.getLines());
-    }
-
-    private static void draw(MatrixStack matrices, VertexConsumer lines, Vec3d cam, Box box, Mark m) {
-        // чуть шире блока, чтобы линии не сливались с гранями
-        Box b = box.expand(0.002).offset(-cam.x, -cam.y, -cam.z);
-        VertexRendering.drawBox(matrices, lines, b, m.r(), m.g(), m.b(), 1.0f);
+        buffers.draw(RenderLayers.lines());
     }
 }
