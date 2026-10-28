@@ -1,0 +1,27 @@
+{
+	"schemaVersion": 1,
+	"id": "universal_mod",
+	"version": "${version}",
+	"name": "Universal Mod",
+	"description": "Универсальный мод: автокликер, быстрые клики, просмотр содержимого шалкеров.",
+	"authors": [
+		"Azizbek"
+	],
+	"license": "CC0-1.0",
+	"icon": "assets/universal_mod/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.example.universalmod.UniversalMod"
+		]
+	},
+	"mixins": [
+		"universal_mod.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.2",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

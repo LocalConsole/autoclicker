@@ -1,0 +1,23 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.example.universalmod.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "MinecraftClientAccessor",
+    "InteractionManagerAccessor",
+    "SimpleOptionAccessor",
+    "ChatScreenMixin",
+    "ChatHudMixin",
+    "EntityMixin",
+    "CameraMixin",
+    "GameRendererMixin",
+    "MouseMixin",
+    "HandledScreenMixin",
+    "ParticleManagerMixin",
+    "ClientPlayNetworkHandlerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
