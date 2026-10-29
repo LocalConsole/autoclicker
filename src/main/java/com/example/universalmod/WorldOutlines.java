@@ -60,7 +60,7 @@ public class WorldOutlines {
             drawBlocks(matrices, vc, BlockFrames.sand, cp, ClickerConfig.frameSandColor, width, EdgeMask.FRAMES);
             drawBlocks(matrices, vc, BlockFrames.gravel, cp, ClickerConfig.frameGravelColor, width, EdgeMask.FRAMES);
             drawBlocks(matrices, vc, BlockFrames.glow, cp, ClickerConfig.frameGlowColor, width, EdgeMask.FRAMES);
-            drawBlocks(matrices, vc, BlockFrames.snow, cp, ClickerConfig.frameSnowColor, width, EdgeMask.FRAMES);
+            drawBlocks(matrices, vc, BlockFrames.snow, cp, ClickerConfig.frameSnowColor, width, EdgeMask.FRAMES, 0.04);
         }
         if (invis) {
             drawBlocks(matrices, vc, InvisibleBlocks.barrier, cp, ClickerConfig.invisBarrierColor, width, EdgeMask.INVIS);
@@ -85,13 +85,18 @@ public class WorldOutlines {
 
     private static void drawBlocks(MatrixStack m, VertexConsumer vc, List<BlockPos> list, Vec3d cp, int colorIdx, float width,
                                    java.util.Map<Long, Integer> masks) {
+        drawBlocks(m, vc, list, cp, colorIdx, width, masks, 0.0);
+    }
+
+    private static void drawBlocks(MatrixStack m, VertexConsumer vc, List<BlockPos> list, Vec3d cp, int colorIdx, float width,
+                                   java.util.Map<Long, Integer> masks, double inset) {
         if (list.isEmpty()) return;
         int c = color(colorIdx);
         for (BlockPos p : list) {
             int mask = masks.getOrDefault(p.asLong(), 0xFFF);
             for (int e = 0; e < 12; e++) {
                 if ((mask & (1 << e)) == 0) continue;
-                double[] s = EdgeMask.segment(p, e);
+                double[] s = EdgeMask.segment(p, e, inset);
                 drawBox(m, vc, new Box(s[0], s[1], s[2], s[3], s[4], s[5]), cp, c, width);
             }
         }

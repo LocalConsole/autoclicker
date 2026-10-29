@@ -48,6 +48,11 @@ final class EdgeMask {
 
     /** Концы ребра с номером e для блока p: {minX,minY,minZ,maxX,maxY,maxZ} с небольшой толщиной. */
     static double[] segment(BlockPos p, int e) {
+        return segment(p, e, 0.0);
+    }
+
+    /** То же, но рамка сдвинута внутрь блока на inset — рамки соседних блоков не сливаются. */
+    static double[] segment(BlockPos p, int e, double inset) {
         int axis = e / 4;
         int sb = (e & 2) != 0 ? 1 : 0;
         int sc = (e & 1) != 0 ? 1 : 0;
@@ -57,12 +62,14 @@ final class EdgeMask {
         double[] lo = new double[3];
         double[] hi = new double[3];
         double[] base = {p.getX(), p.getY(), p.getZ()};
-        lo[axis] = base[axis];
-        hi[axis] = base[axis] + 1.0;
-        lo[bAx] = base[bAx] + sb - t;
-        hi[bAx] = base[bAx] + sb + t;
-        lo[cAx] = base[cAx] + sc - t;
-        hi[cAx] = base[cAx] + sc + t;
+        double ib = sb == 1 ? -inset : inset;
+        double ic = sc == 1 ? -inset : inset;
+        lo[axis] = base[axis] + inset;
+        hi[axis] = base[axis] + 1.0 - inset;
+        lo[bAx] = base[bAx] + sb + ib - t;
+        hi[bAx] = base[bAx] + sb + ib + t;
+        lo[cAx] = base[cAx] + sc + ic - t;
+        hi[cAx] = base[cAx] + sc + ic + t;
         return new double[]{lo[0], lo[1], lo[2], hi[0], hi[1], hi[2]};
     }
 }

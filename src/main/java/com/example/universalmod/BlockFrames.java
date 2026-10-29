@@ -78,6 +78,7 @@ public class BlockFrames {
         int r = Math.max(4, Math.min(32, ClickerConfig.frameRadius));
         int r2 = r * r;
         BlockPos c = client.player.getBlockPos();
+        net.minecraft.util.math.Vec3d eye = client.player.getEyePos();
         BlockPos.Mutable pos = new BlockPos.Mutable();
         int blocks = 0;
         boolean solid = ClickerConfig.frameSolid;
@@ -102,7 +103,10 @@ public class BlockFrames {
                         if (target != null) {
                             // Только видимые рёбра: внутри кучи и со стороны соседних блоков ничего не рисуем
                             if (target.size() < MAX_COLLECT) {
-                                int mk = EdgeMask.compute(world, pos, b);
+                                // Рыхлый снег: полная сетка (все рёбра), но не у блоков, закрытых со всех сторон
+                                int mk = b == Blocks.POWDER_SNOW
+                                        ? (visibleFrom(world, pos, b, eye) ? 0xFFF : 0)
+                                        : EdgeMask.compute(world, pos, b);
                                 if (mk != 0) {
                                     target.add(pos.toImmutable());
                                     tm.put(pos.asLong(), mk);
@@ -114,6 +118,7 @@ public class BlockFrames {
                     ParticleEffect fx = effectFor(b);
                     if (fx == null) continue;
                     if (!exposed(world, pos)) continue;
+                    if (b == Blocks.POWDER_SNOW && !visibleFrom(world, pos, b, eye)) continue;
                     long key = pos.asLong();
                     Integer last = LAST.get(key);
                     if (last != null && now - last < respawnFor(fx)) continue;
@@ -148,6 +153,37 @@ public class BlockFrames {
             if (w.getBlockState(m).getBlock() != b) return true;
         }
         return false;
+    }
+
+    /** Есть открытая грань, обращённая к игроку: блок виден (закрытые и задние грани не считаем). */
+    private static boolean visibleFrom(ClientWorld w, BlockPos p, Block self, net.minecraft.util.math.Vec3d eye) {
+        BlockPos.Mutable m = new BlockPos.Mutable();
+        for (Direction d : Direction.values()) {
+            m.set(p, d);
+            BlockState s = w.getBlockState(m);
+            if (s.getBlock() == self || s.isOpaqueFullCube()) continue;
+            boolean facing = switch (d) {
+                case EAST -> eye.x > p.getX() + 1;
+                case WEST -> eye.x < p.getX();
+                case UP -> eye.y > p.getY() + 1;
+                case DOWN -> eye.y < p.getY();
+                case SOUTH -> eye.z > p.getZ() + 1;
+                case NORTH -> eye.z < p.getZ();
+            };
+            if (facing) return true;
+        }
+        return false;
+    }
+
+    /** Все 6 соседей — такой же блок или сплошной непрозрачный блок: блок снаружи не виден. */
+    private static boolean enclosed(ClientWorld w, BlockPos p, Block self) {
+        BlockPos.Mutable m = new BlockPos.Mutable();
+        for (Direction d : Direction.values()) {
+            m.set(p, d);
+            BlockState s = w.getBlockState(m);
+            if (s.getBlock() != self && !s.isOpaqueFullCube()) return false;
+        }
+        return true;
     }
 
     /** Оставляем ближайшие к игроку блоки, не больше лимита. */
