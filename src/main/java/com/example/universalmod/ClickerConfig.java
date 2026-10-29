@@ -24,6 +24,7 @@ public class ClickerConfig {
     public static int rightCps = 10;
     public static boolean fastPlace = false;
     public static boolean fastBreak = false;
+    public static boolean waterFast = false;
     public static boolean fastLeftClick = false;
     public static boolean fastRightClick = false;
     public static int fastLeftCount = 4;
@@ -165,6 +166,7 @@ public class ClickerConfig {
         int rightCps = 10;
         boolean fastPlace = false;
         boolean fastBreak = false;
+        boolean waterFast = false;
         boolean fastLeftClick = false;
         boolean fastRightClick = false;
         int fastLeftCount = 4;
@@ -329,6 +331,7 @@ public class ClickerConfig {
             rightCps = clamp(d.rightCps);
             fastPlace = d.fastPlace;
             fastBreak = d.fastBreak;
+            waterFast = d.waterFast;
             fastLeftClick = d.fastLeftClick;
             fastRightClick = d.fastRightClick;
             fastLeftCount = clampFast(d.fastLeftCount);
@@ -470,6 +473,7 @@ public class ClickerConfig {
         d.rightCps = rightCps;
         d.fastPlace = fastPlace;
         d.fastBreak = fastBreak;
+        d.waterFast = waterFast;
         d.fastLeftClick = fastLeftClick;
         d.fastRightClick = fastRightClick;
         d.fastLeftCount = fastLeftCount;

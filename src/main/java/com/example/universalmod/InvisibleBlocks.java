@@ -27,7 +27,7 @@ public class InvisibleBlocks {
 
     private static final Map<Long, Integer> LAST = new HashMap<>();
     private static int now = 0;
-    private static final int MAX_OUTLINES_PER_TYPE = 60;
+    private static final int MAX_OUTLINES_PER_TYPE = 1500;
 
     /** Найденные при последней проверке блоки для сплошного контура. */
     static List<BlockPos> barrier = Collections.emptyList();
@@ -38,6 +38,7 @@ public class InvisibleBlocks {
         barrier = Collections.emptyList();
         voidBlocks = Collections.emptyList();
         light = Collections.emptyList();
+        EdgeMask.INVIS.clear();
     }
 
     public static void reset() {
@@ -67,6 +68,7 @@ public class InvisibleBlocks {
         BlockPos c = client.player.getBlockPos();
         BlockPos.Mutable pos = new BlockPos.Mutable();
         int spawned = 0;
+        Map<Long, Integer> tm = new HashMap<>();
         List<BlockPos> tBarrier = new ArrayList<>(), tVoid = new ArrayList<>(), tLight = new ArrayList<>();
 
         scan:
@@ -79,7 +81,13 @@ public class InvisibleBlocks {
                     if (st.isAir() || !wanted(st.getBlock())) continue;
                     Block blk = st.getBlock();
                     List<BlockPos> bucket = blk == Blocks.BARRIER ? tBarrier : blk == Blocks.STRUCTURE_VOID ? tVoid : tLight;
-                    if (bucket.size() < MAX_OUTLINES_PER_TYPE) bucket.add(pos.toImmutable());
+                    if (bucket.size() < MAX_OUTLINES_PER_TYPE) {
+                        int mk = EdgeMask.compute(world, pos, blk);
+                        if (mk != 0) {
+                            bucket.add(pos.toImmutable());
+                            tm.put(pos.asLong(), mk);
+                        }
+                    }
                     long key = pos.asLong();
                     Integer last = LAST.get(key);
                     if (last != null && now - last < RESPAWN_AFTER) continue;
@@ -95,6 +103,8 @@ public class InvisibleBlocks {
         barrier = tBarrier;
         voidBlocks = tVoid;
         light = tLight;
+        EdgeMask.INVIS.clear();
+        EdgeMask.INVIS.putAll(tm);
 
         // Забываем блоки, которых давно не видели (убрали или ушли далеко)
         Iterator<Map.Entry<Long, Integer>> it = LAST.entrySet().iterator();

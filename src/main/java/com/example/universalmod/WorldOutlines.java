@@ -36,7 +36,8 @@ public class WorldOutlines {
         boolean frames = ClickerConfig.showFrames && ClickerConfig.frameSolid;
         boolean invis = ClickerConfig.showInvisible && ClickerConfig.invisOutline;
         EntityHitResult hit = hitboxTarget(mc);
-        if (!frames && !invis && hit == null) return;
+        List<BlockPos> found = ContainerSearch.matchingPositions(mc);
+        if (!frames && !invis && hit == null && found.isEmpty()) return;
 
         MatrixStack matrices = ctx.matrices();
         VertexConsumerProvider consumers = ctx.consumers();
@@ -52,16 +53,19 @@ public class WorldOutlines {
             Vec3d shift = e.getLerpedPos(tp).subtract(e.getX(), e.getY(), e.getZ());
             drawBox(matrices, vc, e.getBoundingBox().offset(shift), cp, color(ClickerConfig.hitboxColor), width);
         }
+        for (BlockPos p : found) {
+            drawBox(matrices, vc, new Box(p), cp, 0xFFFF3030, width);
+        }
         if (frames) {
-            drawBlocks(matrices, vc, BlockFrames.sand, cp, ClickerConfig.frameSandColor, width);
-            drawBlocks(matrices, vc, BlockFrames.gravel, cp, ClickerConfig.frameGravelColor, width);
-            drawBlocks(matrices, vc, BlockFrames.glow, cp, ClickerConfig.frameGlowColor, width);
-            drawBlocks(matrices, vc, BlockFrames.snow, cp, ClickerConfig.frameSnowColor, width);
+            drawBlocks(matrices, vc, BlockFrames.sand, cp, ClickerConfig.frameSandColor, width, EdgeMask.FRAMES);
+            drawBlocks(matrices, vc, BlockFrames.gravel, cp, ClickerConfig.frameGravelColor, width, EdgeMask.FRAMES);
+            drawBlocks(matrices, vc, BlockFrames.glow, cp, ClickerConfig.frameGlowColor, width, EdgeMask.FRAMES);
+            drawBlocks(matrices, vc, BlockFrames.snow, cp, ClickerConfig.frameSnowColor, width, EdgeMask.FRAMES);
         }
         if (invis) {
-            drawBlocks(matrices, vc, InvisibleBlocks.barrier, cp, ClickerConfig.invisBarrierColor, width);
-            drawBlocks(matrices, vc, InvisibleBlocks.voidBlocks, cp, ClickerConfig.invisVoidColor, width);
-            drawBlocks(matrices, vc, InvisibleBlocks.light, cp, ClickerConfig.invisLightColor, width);
+            drawBlocks(matrices, vc, InvisibleBlocks.barrier, cp, ClickerConfig.invisBarrierColor, width, EdgeMask.INVIS);
+            drawBlocks(matrices, vc, InvisibleBlocks.voidBlocks, cp, ClickerConfig.invisVoidColor, width, EdgeMask.INVIS);
+            drawBlocks(matrices, vc, InvisibleBlocks.light, cp, ClickerConfig.invisLightColor, width, EdgeMask.INVIS);
         }
     }
 
@@ -79,11 +83,17 @@ public class WorldOutlines {
         return Waypoints.COLORS[Math.max(0, Math.min(Waypoints.COLORS.length - 1, idx))];
     }
 
-    private static void drawBlocks(MatrixStack m, VertexConsumer vc, List<BlockPos> list, Vec3d cp, int colorIdx, float width) {
+    private static void drawBlocks(MatrixStack m, VertexConsumer vc, List<BlockPos> list, Vec3d cp, int colorIdx, float width,
+                                   java.util.Map<Long, Integer> masks) {
         if (list.isEmpty()) return;
         int c = color(colorIdx);
         for (BlockPos p : list) {
-            drawBox(m, vc, new Box(p), cp, c, width);
+            int mask = masks.getOrDefault(p.asLong(), 0xFFF);
+            for (int e = 0; e < 12; e++) {
+                if ((mask & (1 << e)) == 0) continue;
+                double[] s = EdgeMask.segment(p, e);
+                drawBox(m, vc, new Box(s[0], s[1], s[2], s[3], s[4], s[5]), cp, c, width);
+            }
         }
     }
 

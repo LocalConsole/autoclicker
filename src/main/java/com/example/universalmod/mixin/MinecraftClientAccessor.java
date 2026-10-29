@@ -13,6 +13,10 @@ public interface MinecraftClientAccessor {
     @Accessor("itemUseCooldown")
     void setItemUseCooldown(int value);
 
+    /** Задержка между ударами ЛКМ (после промаха в ваниле 10 тиков): пока она больше нуля, doAttack ничего не делает. */
+    @Accessor("attackCooldown")
+    void setAttackCooldown(int value);
+
     /** Один клик ПКМ (использование предмета / установка блока). */
     @Invoker("doItemUse")
     void invokeDoItemUse();

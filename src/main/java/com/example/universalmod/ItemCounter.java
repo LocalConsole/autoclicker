@@ -49,7 +49,7 @@ public class ItemCounter {
 
         TextRenderer tr = mc.textRenderer;
         int x = (ctx.getScaledWindowWidth() - tr.getWidth(text)) / 2;
-        int y = ctx.getScaledWindowHeight() - 72;
+        int y = ctx.getScaledWindowHeight() - 64;   // чуть ниже уведомлений (-72), выше названия предмета (-59)
         ctx.drawTextWithShadow(tr, text, x, y, 0xFFE0E0E0);
     }
 }

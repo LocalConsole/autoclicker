@@ -508,7 +508,10 @@ public class UniversalMod implements ClientModInitializer {
         // Быстрый ПКМ / ЛКМ: пока кнопка зажата, делаем несколько кликов за тик
         if (client.interactionManager != null && !client.player.isUsingItem()) {
             MinecraftClientAccessor acc = (MinecraftClientAccessor) client;
-            if (ClickerConfig.fastRightClick && client.options.useKey.isPressed()) {
+            boolean waterBucket = ClickerConfig.waterFast
+                    && (client.player.getMainHandStack().isOf(net.minecraft.item.Items.WATER_BUCKET)
+                    || client.player.getOffHandStack().isOf(net.minecraft.item.Items.WATER_BUCKET));
+            if ((ClickerConfig.fastRightClick || waterBucket) && client.options.useKey.isPressed()) {
                 for (int i = 1; i < ClickerConfig.fastRightCount; i++) {
                     acc.setItemUseCooldown(0);
                     acc.invokeDoItemUse();
@@ -525,21 +528,55 @@ public class UniversalMod implements ClientModInitializer {
         // Автоклик по CPS
         if (leftOn) {
             if (ClickerConfig.leftCooldown) {
-                // Как в ваниле: бьём, когда оружие полностью перезарядилось
+                // Бьём, как только оружие перезарядилось: по мобу, по блоку или в воздух — без разницы
                 KeyBinding key = client.options.attackKey;
-                if (client.player.getAttackCooldownProgress(0.0f) >= 1.0f) {
+                net.minecraft.util.hit.HitResult h = client.crosshairTarget;
+                boolean ready = client.player.getAttackCooldownProgress(0.0f) >= 1.0f;
+                if (client.currentScreen != null) {
+                    if (!leftHold) key.setPressed(false);
+                } else if (h instanceof net.minecraft.util.hit.EntityHitResult ehr && ehr.getEntity().isAttackable()) {
+                    if (!leftHold) key.setPressed(false);
+                    if (ready && !client.player.isUsingItem()) {
+                        ((MinecraftClientAccessor) client).invokeDoAttack();
+                    }
+                } else if (h != null && h.getType() == net.minecraft.util.hit.HitResult.Type.BLOCK) {
+                    key.setPressed(true);   // блок: копаем, кнопка зажата
+                } else if (ready) {
+                    // воздух: обычный клик, когда оружие готово
                     KeyBinding.onKeyPressed(InputUtil.fromTranslationKey(key.getBoundKeyTranslationKey()));
                     key.setPressed(true);
                 } else if (!leftHold) {
                     key.setPressed(false);
                 }
             } else {
-                leftAcc = autoClick(client.options.attackKey, ClickerConfig.leftCps, leftAcc, leftHold);
+                leftAcc = autoClickLeft(client, ClickerConfig.leftCps, leftAcc, leftHold);
             }
         }
         if (rightOn) {
             rightAcc = autoClick(client.options.useKey, ClickerConfig.rightCps, rightAcc, rightHold);
         }
+    }
+
+    /** Автоклик ЛКМ: по мобу бьёт напрямую, иначе обычный клик (блок, воздух). */
+    private static double autoClickLeft(MinecraftClient client, int cps, double acc, boolean alsoHeld) {
+        KeyBinding key = client.options.attackKey;
+        if (client.currentScreen != null) {
+            if (!alsoHeld) key.setPressed(false);
+            return acc;
+        }
+        net.minecraft.util.hit.HitResult h = client.crosshairTarget;
+        if (h instanceof net.minecraft.util.hit.EntityHitResult ehr && ehr.getEntity().isAttackable()
+                && !client.player.isUsingItem()) {
+            acc += cps / 20.0;
+            int clicks = (int) acc;
+            acc -= clicks;
+            for (int i = 0; i < clicks; i++) {
+                ((MinecraftClientAccessor) client).invokeDoAttack();
+            }
+            if (!alsoHeld) key.setPressed(false);
+            return acc;
+        }
+        return autoClick(key, cps, acc, alsoHeld);
     }
 
     /** Возвращает обновлённый аккумулятор. */

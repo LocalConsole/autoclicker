@@ -35,6 +35,7 @@ public abstract class HandledScreenMixin {
     @Inject(method = "render", at = @At("TAIL"), require = 0)
     private void universalmod$refillMarks(DrawContext context, int mouseX, int mouseY, float delta, CallbackInfo ci) {
         SlotTools.frame(this.focusedSlot);
+        com.example.universalmod.ContainerSearch.drawSlotMarks(context, ((HandledScreen<?>) (Object) this).getScreenHandler(), this.x, this.y);
         AutoRefill.drawScreenMarks(context, ((HandledScreen<?>) (Object) this).getScreenHandler(), this.x, this.y);
     }
 }

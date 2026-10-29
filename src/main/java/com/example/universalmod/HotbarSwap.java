@@ -104,10 +104,10 @@ public class HotbarSwap {
         if (kind != ELYTRA && swap) {
             pendingKind = kind;
             swapMode = true;
-            needTarget = !lunge;
+            needTarget = false;   // свап по клавише срабатывает сразу, цель в прицеле не нужна
             ticksLeft = windowTicks();
             client.player.sendMessage(Text.literal(name(kind) + ": "
-                    + I18n.t(lunge ? "жду перезарядку" : "жду цель")), true);
+                    + I18n.t("жду перезарядку")), true);
             trySwap(client); // если условия уже выполнены — сработает в этот же тик
             return;
         }
@@ -171,6 +171,15 @@ public class HotbarSwap {
         }
     }
 
+    /** Пустой слот хотбара: прошлый слот, если он пуст, иначе первый пустой; -1, если пустых нет. */
+    private static int emptyHotbarSlot(PlayerInventory inv, int prev) {
+        if (prev >= 0 && prev < 9 && inv.getStack(prev).isEmpty()) return prev;
+        for (int i = 0; i < 9; i++) {
+            if (inv.getStack(i).isEmpty()) return i;
+        }
+        return -1;
+    }
+
     /** Режим свапа: в один тик берём предмет, бьём и возвращаем прошлый слот. */
     private static void trySwap(MinecraftClient client) {
         if (client.currentScreen != null || client.player.isUsingItem()) return;
@@ -187,11 +196,16 @@ public class HotbarSwap {
         int prev = inv.getSelectedSlot();
         if (slot != prev) inv.setSelectedSlot(slot);
 
+        // Снимаем задержку между ударами, иначе после недавнего промаха/клика игра проигнорирует удар
+        ((MinecraftClientAccessor) client).setAttackCooldown(0);
         boolean ok = ((MinecraftClientAccessor) client).invokeDoAttack();
+        client.player.sendMessage(Text.literal(name(pendingKind) + ": "
+                + I18n.t(ok || !needTarget ? "свап выполнен" : "удар не прошёл")), true);
 
-        if (slot != prev && (ClickerConfig.swapReturn || (!ok && needTarget))) {
-            inv.setSelectedSlot(prev);
-        }
+        // После удара уходим на пустой слот хотбара (рука пустая); если пустых нет — на прошлый слот
+        int back = emptyHotbarSlot(inv, prev);
+        if (back < 0 && slot != prev && (ClickerConfig.swapReturn || (!ok && needTarget))) back = prev;
+        if (back >= 0) inv.setSelectedSlot(back);
         // С целью — ровно один удар; без цели (рывок) результат клика не проверяем
         if (ok || !needTarget) reset();
     }

@@ -324,6 +324,61 @@ public class ContainerSearch {
         return true;
     }
 
+    /** Контейнеры с искомым предметом в радиусе поиска (для рамки в мире). */
+    public static java.util.List<BlockPos> matchingPositions(MinecraftClient mc) {
+        java.util.List<BlockPos> out = new java.util.ArrayList<>();
+        if (!ClickerConfig.containerSearch || mc.player == null || mc.world == null) return out;
+        String[] tokens = tokens();
+        if (tokens.length == 0) return out;
+        double r2 = (double) ClickerConfig.searchRadius * ClickerConfig.searchRadius;
+        Vec3d eye = mc.player.getEyePos();
+        for (Map.Entry<BlockPos, String> e : active().entrySet()) {
+            BlockPos p = e.getKey();
+            double dx = p.getX() + 0.5 - eye.x, dy = p.getY() + 0.5 - eye.y, dz = p.getZ() + 0.5 - eye.z;
+            if (dx * dx + dy * dy + dz * dz > r2) continue;
+            if (!mc.world.isChunkLoaded(p) || !isContainer(mc.world.getBlockState(p))) continue;
+            if (matches(e.getValue(), tokens)) out.add(p);
+        }
+        return out;
+    }
+
+    // ---------- Подсветка слотов в открытом окне ----------
+
+    /**
+     * В открытом инвентаре/контейнере обводит слоты с искомым предметом. Если предмет лежит внутри шалкера
+     * (или другого предмета-контейнера), обводится сам шалкер и в его углу ставится метка «▣».
+     */
+    public static void drawSlotMarks(DrawContext ctx, ScreenHandler handler, int ox, int oy) {
+        if (!ClickerConfig.containerSearch || handler == null) return;
+        String[] tokens = tokens();
+        if (tokens.length == 0) return;
+        MinecraftClient mc = MinecraftClient.getInstance();
+        var tr = mc.textRenderer;
+        for (Slot slot : handler.slots) {
+            ItemStack st = slot.getStack();
+            if (st.isEmpty()) continue;
+            StringBuilder own = new StringBuilder();
+            appendStack(own, st);
+            boolean direct = matches(own.toString(), tokens);
+            boolean inside = false;
+            ContainerComponent inner = st.get(DataComponentTypes.CONTAINER);
+            if (inner != null) {
+                StringBuilder in = new StringBuilder();
+                for (ItemStack s : inner.iterateNonEmpty()) appendStack(in, s);
+                inside = matches(in.toString(), tokens);
+            }
+            if (!direct && !inside) continue;
+            int x = ox + slot.x, y = oy + slot.y;
+            int col = inside && !direct ? 0xFFFFA020 : 0xFFFF3030;
+            ctx.fill(x, y, x + 16, y + 16, (col & 0x00FFFFFF) | 0x40000000);
+            ctx.fill(x - 1, y - 1, x + 17, y, col);
+            ctx.fill(x - 1, y + 16, x + 17, y + 17, col);
+            ctx.fill(x - 1, y, x, y + 16, col);
+            ctx.fill(x + 16, y, x + 17, y + 16, col);
+            if (inside) ctx.drawTextWithShadow(tr, "\u25A3", x + 10, y, 0xFFFFFFFF);
+        }
+    }
+
     // ---------- Отрисовка ----------
 
     static Vec3d cameraPos(Camera cam, MinecraftClient client) {
@@ -384,7 +439,7 @@ public class ContainerSearch {
                 continue;
             }
             if (!matches(e.getValue(), tokens)) continue;
-            drawBox(ctx, p, cp, right, up, fwd, sw, sh, aspect, tanHalf, glow, core);
+            // Рамка рисуется в мире (WorldOutlines), как контур рыхлого снега; здесь только чистим устаревшее
         }
         if (stale != null) {
             for (BlockPos p : stale) {

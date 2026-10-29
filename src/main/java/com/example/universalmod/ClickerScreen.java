@@ -378,6 +378,8 @@ public class ClickerScreen extends Screen {
                 () -> ClickerConfig.fastPlace = !ClickerConfig.fastPlace, K_PLACE);
         toggle("Быстрое разрушение", () -> ClickerConfig.fastBreak,
                 () -> ClickerConfig.fastBreak = !ClickerConfig.fastBreak, K_BREAK);
+        toggle("Вода: быстрый ПКМ", () -> ClickerConfig.waterFast,
+                () -> ClickerConfig.waterFast = !ClickerConfig.waterFast, -1);
 
         section("Шалкеры");
         toggle("Просмотр шалкера", () -> ClickerConfig.shulkerPreview,

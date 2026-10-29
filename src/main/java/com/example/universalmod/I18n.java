@@ -205,6 +205,9 @@ public class I18n {
         a("Быстрый ПКМ", "Tez o'ng tugma", "Fast RMB");
         a("Кликов за тик ПКМ", "Tikda o'ng tugma kliklari", "RMB clicks per tick");
         a("Быстрая установка", "Tez qo'yish", "Fast placing");
+        a("свап выполнен", "almashtirish bajarildi", "swap done");
+        a("удар не прошёл", "zarba o'tmadi", "hit failed");
+        a("Вода: быстрый ПКМ", "Suv: tez ONG", "Water: fast RMB");
         a("Быстрое разрушение", "Tez buzish", "Fast breaking");
         a("Просмотр шалкера", "Shulker ko'rinishi", "Shulker preview");
         a("ЛКМ по кулдауну", "Chap tugma kuldaun bo'yicha", "LMB by cooldown");

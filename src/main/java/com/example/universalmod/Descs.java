@@ -55,7 +55,7 @@ public class Descs {
         d("Автоклик ПКМ", "Сам кликает правой кнопкой.", "O'ng tugmani o'zi bosadi.", "Clicks the right button for you.");
         d("Зажать ЛКМ", "Держит левую кнопку нажатой (копать, бить).", "Chap tugmani bosib turadi (qazish, urish).", "Holds the left button (dig, attack).");
         d("Зажать ПКМ", "Держит правую кнопку нажатой.", "O'ng tugmani bosib turadi.", "Holds the right button.");
-        d("ЛКМ по кулдауну", "Бьёт, только когда оружие перезарядилось.", "Faqat qurol tayyor bo'lganda uradi.", "Hits only when the weapon is recharged.");
+        d("ЛКМ по кулдауну", "Бьёт, как только оружие перезарядилось: по мобу, по блоку или в воздух.", "Qurol tayyor bo'lishi bilan uradi: mavjudotga, blokka yoki havoga.", "Hits as soon as the weapon is recharged: at a mob, a block or thin air.");
 
         // ---------- Быстрые клики ----------
         d("Быстрый ЛКМ", "Много ударов за тик при зажатой кнопке.", "Tugma bosilganda bir tikda ko'p zarba.", "Many attacks per tick while held.");
@@ -65,6 +65,7 @@ public class Descs {
 
         // ---------- Блоки ----------
         d("Быстрая установка", "Убирает задержку между установками блоков.", "Bloklarni qo'yish orasidagi kechikishni olib tashlaydi.", "Removes the delay between block placements.");
+        d("Вода: быстрый ПКМ", "Если в руке ведро воды, ПКМ работает как быстрый клик (число кликов за тик берётся из быстрых кликов).", "Qo'lda suv chelagi bo'lsa, ONG tez klik bo'ladi (tikdagi kliklar soni tez kliklardan olinadi).", "With a water bucket in hand, right click acts as fast click (clicks per tick come from the fast click setting).");
         d("Быстрое разрушение", "Убирает задержку между разрушением блоков.", "Bloklarni buzish orasidagi kechikishni olib tashlaydi.", "Removes the delay between breaking blocks.");
 
         // ---------- Шалкеры ----------
@@ -139,7 +140,7 @@ public class Descs {
         d("Булава: режим свапа (ждать цель)", "Ждёт цель, бьёт и возвращает слот.", "Nishonni kutadi, uradi, slotni qaytaradi.", "Waits for a target, hits, restores the slot.");
         d("Элитры: взять из хотбара", "Клавиша берёт элитры из хотбара.", "Tugma xotbardan elitrani oladi.", "Key takes elytra from the hotbar.");
         d("Элитры: сразу надеть", "Сразу надевает взятые элитры.", "Olingan elitrani darrov kiyadi.", "Equips the elytra right away.");
-        d("Вернуть прошлый слот после свапа", "После свапа возвращает прежний слот.", "Almashgach oldingi slotni qaytaradi.", "Returns to the previous slot after a swap.");
+        d("Вернуть прошлый слот после свапа", "После свапа уходит на пустой слот хотбара; если пустых нет, возвращает прежний слот.", "Almashgach bo'sh hotbar slotiga o'tadi; bo'sh bo'lmasa, oldingi slotni qaytaradi.", "After a swap goes to an empty hotbar slot; if none, returns to the previous slot.");
         d("Ждать цель в прицеле", "Сколько секунд ждать цель.", "Nishonni necha soniya kutish.", "How many seconds to wait for a target.");
         d("Ждать перезарядку оружия", "Бьёт только после перезарядки оружия.", "Faqat qurol tayyor bo'lgach uradi.", "Hits only once the weapon is recharged.");
 

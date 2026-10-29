@@ -25,8 +25,8 @@ import java.util.Map;
 public class BlockFrames {
     private static final int SCAN_EVERY = 6;
     private static final int MAX_BLOCKS_PER_SCAN = 40;
-    private static final int MAX_SOLID_PER_TYPE = 60;
-    private static final int MAX_COLLECT = 2000;
+    private static final int MAX_SOLID_PER_TYPE = 1500;
+    private static final int MAX_COLLECT = 6000;
 
     private static final Map<Long, Integer> LAST = new HashMap<>();
     private static int now = 0;
@@ -42,6 +42,7 @@ public class BlockFrames {
         gravel = Collections.emptyList();
         glow = Collections.emptyList();
         snow = Collections.emptyList();
+        EdgeMask.FRAMES.clear();
     }
 
     public static void reset() {
@@ -80,6 +81,7 @@ public class BlockFrames {
         BlockPos.Mutable pos = new BlockPos.Mutable();
         int blocks = 0;
         boolean solid = ClickerConfig.frameSolid;
+        Map<Long, Integer> tm = new HashMap<>();
         List<BlockPos> tSand = new ArrayList<>(), tGravel = new ArrayList<>(), tGlow = new ArrayList<>(), tSnow = new ArrayList<>();
 
         scan:
@@ -98,8 +100,14 @@ public class BlockFrames {
                         else if (b == Blocks.GLOWSTONE && ClickerConfig.frameGlowstone) target = tGlow;
                         else if (b == Blocks.POWDER_SNOW && ClickerConfig.framePowderSnow) target = tSnow;
                         if (target != null) {
-                            // Только поверхность скопления: внутри кучи рамки не нужны
-                            if (target.size() < MAX_COLLECT && exposed(world, pos)) target.add(pos.toImmutable());
+                            // Только видимые рёбра: внутри кучи и со стороны соседних блоков ничего не рисуем
+                            if (target.size() < MAX_COLLECT) {
+                                int mk = EdgeMask.compute(world, pos, b);
+                                if (mk != 0) {
+                                    target.add(pos.toImmutable());
+                                    tm.put(pos.asLong(), mk);
+                                }
+                            }
                             continue;
                         }
                     }
@@ -120,6 +128,10 @@ public class BlockFrames {
         gravel = nearest(tGravel, c);
         glow = nearest(tGlow, c);
         snow = nearest(tSnow, c);
+        EdgeMask.FRAMES.clear();
+        for (List<BlockPos> l : List.of(sand, gravel, glow, snow)) {
+            for (BlockPos bp : l) EdgeMask.FRAMES.put(bp.asLong(), tm.get(bp.asLong()));
+        }
 
         Iterator<Map.Entry<Long, Integer>> it = LAST.entrySet().iterator();
         while (it.hasNext()) {

@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * Перемещение предметов мышью в стиле Mouse Tweaks и Item Scroller:
  * колёсико над слотом переносит предметы по одному, Shift + колёсико переносит весь стак,
- * Shift + зажатая ЛКМ и проведение по слотам быстро переносит их, Ctrl + Shift + клик переносит все такие же предметы.
+ * Shift + зажатая ЛКМ или ПКМ и проведение по слотам быстро переносит их, Ctrl + Shift + клик переносит все такие же предметы.
  */
 public class SlotTools {
     /** Слот под курсором: обновляется каждый кадр из HandledScreenMixin. */
@@ -165,7 +165,9 @@ public class SlotTools {
                 dragPrev = false;
                 return;
             }
-            boolean lmb = GLFW.glfwGetMouseButton(mc.getWindow().getHandle(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+            long win = mc.getWindow().getHandle();
+            boolean lmb = GLFW.glfwGetMouseButton(win, GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS
+                    || GLFW.glfwGetMouseButton(win, GLFW.GLFW_MOUSE_BUTTON_RIGHT) == GLFW.GLFW_PRESS;
             if (!lmb || !shiftDown(mc) || ctrlDown(mc)) {
                 dragPrev = false;
                 lastSlot = -1;
