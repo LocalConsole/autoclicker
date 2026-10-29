@@ -3,7 +3,7 @@ package com.example.universalmod;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.RenderLayers;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.render.VertexRendering;
@@ -42,7 +42,7 @@ public class WorldOutlines {
         VertexConsumerProvider consumers = ctx.consumers();
         if (matrices == null || consumers == null) return;
 
-        VertexConsumer vc = consumers.getBuffer(RenderLayer.getLines());
+        VertexConsumer vc = consumers.getBuffer(RenderLayers.lines());
         Vec3d cp = ContainerSearch.cameraPos(mc.gameRenderer.getCamera(), mc);
         float width = Math.max(2.5f, mc.getWindow().getFramebufferWidth() / 1920.0f * 2.5f);
 
