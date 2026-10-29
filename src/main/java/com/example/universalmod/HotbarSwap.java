@@ -20,7 +20,7 @@ import net.minecraft.util.hit.HitResult;
  *  - копьё / булава: удар ЛКМ сразу, если прицел на цели, иначе ждём цель до заданного времени (1–10 с), один удар.
  *
  * Режим свапа (копьё и булава): клавиша слот НЕ переключает. Мод запоминает, что предмет есть в хотбаре,
- * и запускает ожидание. Как только прицел оказывается на цели, в ОДИН тик: берём предмет, бьём, возвращаем прошлый слот.
+ * и запускает ожидание. Как только прицел оказывается на цели, в одном тике берём предмет и бьём, в следующем тике возвращаем прошлый слот.
  * У копья есть ещё свап без цели: то же самое, но цель не нужна (джеб для рывка Lunge).
  *
  * Почему это работает: перезарядка при смене предмета сбрасывается не сразу, а в следующем тике игрока.
@@ -39,9 +39,18 @@ public class HotbarSwap {
     private static boolean swapMode = false;
     private static boolean needTarget = true;
     private static int ticksLeft = 0;
+    private static int returnSlot = -1;    // слот, на который вернёмся в СЛЕДУЮЩЕМ тике после свапа
 
     public static void reset() {
         pendingKind = -1;
+    }
+
+    /** Сразу выполняет отложенный возврат слота (если он ещё не выполнен). */
+    private static void flushReturn(MinecraftClient client) {
+        if (returnSlot >= 0 && client.player != null) {
+            client.player.getInventory().setSelectedSlot(returnSlot);
+        }
+        returnSlot = -1;
     }
 
     private static boolean matches(int kind, ItemStack s) {
@@ -85,6 +94,7 @@ public class HotbarSwap {
 
     /** Нажата клавиша выбранного предмета. */
     public static void press(MinecraftClient client, int kind) {
+        flushReturn(client);
         reset();
         if (client.player == null || client.interactionManager == null || client.currentScreen != null) return;
         if (client.player.isSpectator()) return;
@@ -118,11 +128,14 @@ public class HotbarSwap {
             return;
         }
 
+        int prevSlot = inv.getSelectedSlot();
         inv.setSelectedSlot(slot);
         if (!autoAction(kind)) return;
 
         if (kind == ELYTRA) {
             client.interactionManager.interactItem(client.player, Hand.MAIN_HAND);
+            // Элитры надеты — в следующем тике возвращаем прошлый слот
+            if (ClickerConfig.swapReturn && slot != prevSlot) returnSlot = prevSlot;
             return;
         }
 
@@ -137,6 +150,8 @@ public class HotbarSwap {
     }
 
     public static void tick(MinecraftClient client) {
+        // Свап: удар был в прошлом тике, теперь возвращаем слот
+        if (returnSlot >= 0) flushReturn(client);
         if (pendingKind < 0) return;
         if (client.player == null || client.interactionManager == null) {
             reset();
@@ -182,10 +197,21 @@ public class HotbarSwap {
 
     /** Режим свапа: в один тик берём предмет, бьём и возвращаем прошлый слот. */
     private static void trySwap(MinecraftClient client) {
-        if (client.currentScreen != null || client.player.isUsingItem()) return;
-        if (needTarget && !targetInCrosshair(client)) return;
+        if (client.currentScreen != null) return;
+        if (client.player.isUsingItem()) {
+            client.player.sendMessage(Text.literal(name(pendingKind) + ": используется предмет"), true);
+            return;
+        }
+        if (needTarget && !targetInCrosshair(client)) {
+            client.player.sendMessage(Text.literal(name(pendingKind) + ": нет цели в прицеле"), true);
+            return;
+        }
         // Перезарядка здесь — у предмета, который сейчас в руке (именно её и «одалживает» свап)
-        if (ClickerConfig.swapWaitCooldown && client.player.getAttackCooldownProgress(0.0f) < 1.0f) return;
+        float cd = client.player.getAttackCooldownProgress(0.0f);
+        if (ClickerConfig.swapWaitCooldown && cd < 1.0f) {
+            client.player.sendMessage(Text.literal(name(pendingKind) + ": перезарядка " + Math.round(cd * 100) + "%"), true);
+            return;
+        }
 
         int slot = findSlot(client, pendingKind);
         if (slot < 0) {
@@ -202,10 +228,12 @@ public class HotbarSwap {
         client.player.sendMessage(Text.literal(name(pendingKind) + ": "
                 + I18n.t(ok || !needTarget ? "свап выполнен" : "удар не прошёл")), true);
 
-        // После удара уходим на пустой слот хотбара (рука пустая); если пустых нет — на прошлый слот
-        int back = emptyHotbarSlot(inv, prev);
-        if (back < 0 && slot != prev && (ClickerConfig.swapReturn || (!ok && needTarget))) back = prev;
-        if (back >= 0) inv.setSelectedSlot(back);
+        // После удара возвращаем прошлый слот (если включено «Вернуть прошлый слот»), иначе уходим на пустой слот
+        int back = -1;
+        if (slot != prev && (ClickerConfig.swapReturn || (!ok && needTarget))) back = prev;
+        if (back < 0) back = emptyHotbarSlot(inv, prev);
+        // Возврат — в следующем тике (удар и смена слота уже ушли на сервер в этом)
+        if (back >= 0 && back != inv.getSelectedSlot()) returnSlot = back;
         // С целью — ровно один удар; без цели (рывок) результат клика не проверяем
         if (ok || !needTarget) reset();
     }

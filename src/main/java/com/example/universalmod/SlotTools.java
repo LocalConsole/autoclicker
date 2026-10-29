@@ -23,6 +23,7 @@ public class SlotTools {
 
     private static boolean dragPrev = false;
     private static int lastSlot = -1;
+    private static long lastClickTick = -1;
 
     // ---------- вспомогательное ----------
 
@@ -161,7 +162,8 @@ public class SlotTools {
         hovered = focused;
         try {
             MinecraftClient mc = MinecraftClient.getInstance();
-            if (!ClickerConfig.slotDrag || mc.player == null || mc.interactionManager == null) {
+            if (!ClickerConfig.slotDrag || mc.player == null || mc.interactionManager == null || mc.world == null
+                    || mc.currentScreen instanceof CreativeInventoryScreen) {
                 dragPrev = false;
                 return;
             }
@@ -183,8 +185,12 @@ public class SlotTools {
                 return;
             }
             if (focused == null || id == lastSlot) return;
+            // Не больше одного клика за тик, иначе сервер откатывает инвентарь; слот не помечаем — повторим в следующем тике
+            long now = mc.world.getTime();
+            if (now == lastClickTick) return;
             lastSlot = id;
             if (!focused.hasStack() || !focused.canTakeItems(mc.player)) return;
+            lastClickTick = now;
             click(mc, h, id, 0, SlotActionType.QUICK_MOVE);
         } catch (Throwable ignored) {
         }
