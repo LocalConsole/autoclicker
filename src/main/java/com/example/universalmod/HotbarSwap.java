@@ -114,7 +114,7 @@ public class HotbarSwap {
         if (kind != ELYTRA && swap) {
             pendingKind = kind;
             swapMode = true;
-            needTarget = false;   // свап по клавише срабатывает сразу, цель в прицеле не нужна
+            needTarget = !lunge;  // обычный свап ждёт цель в прицеле; без цели — только свап копья для рывка
             ticksLeft = windowTicks();
             client.player.sendMessage(Text.literal(name(kind) + ": "
                     + I18n.t("жду перезарядку")), true);
@@ -228,12 +228,8 @@ public class HotbarSwap {
         client.player.sendMessage(Text.literal(name(pendingKind) + ": "
                 + I18n.t(ok || !needTarget ? "свап выполнен" : "удар не прошёл")), true);
 
-        // После удара возвращаем прошлый слот (если включено «Вернуть прошлый слот»), иначе уходим на пустой слот
-        int back = -1;
-        if (slot != prev && (ClickerConfig.swapReturn || (!ok && needTarget))) back = prev;
-        if (back < 0) back = emptyHotbarSlot(inv, prev);
-        // Возврат — в следующем тике (удар и смена слота уже ушли на сервер в этом)
-        if (back >= 0 && back != inv.getSelectedSlot()) returnSlot = back;
+        // Тик 1: взяли предмет и ударили. Тик 2: возвращаем слот, на котором были (для копья и булавы одинаково)
+        if (slot != prev) returnSlot = prev;
         // С целью — ровно один удар; без цели (рывок) результат клика не проверяем
         if (ok || !needTarget) reset();
     }
