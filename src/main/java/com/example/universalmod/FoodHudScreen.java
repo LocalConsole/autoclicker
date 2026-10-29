@@ -20,7 +20,9 @@ public class FoodHudScreen extends Screen {
     protected void init() {
         int w = Math.min(240, this.width - 20);
         int x = this.width / 2 - w / 2;
-        int y = this.height / 2 - 62;
+        int y = this.height / 2 - 50;
+        addDrawableChild(toggle(x, y - 48, w, I18n.t("Показы еды"),
+                () -> ClickerConfig.foodHud, () -> ClickerConfig.foodHud = !ClickerConfig.foodHud));
         addDrawableChild(toggle(x, y - 24, w, I18n.t("Насыщение числом"),
                 () -> ClickerConfig.foodSatNumber, () -> ClickerConfig.foodSatNumber = !ClickerConfig.foodSatNumber));
         addDrawableChild(toggle(x, y, w, I18n.t("Насыщение (золотая рамка)"),
@@ -47,7 +49,7 @@ public class FoodHudScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, this.height / 2 - 100, 0xFFFFFFFF);
+        context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, this.height / 2 - 114, 0xFFFFFFFF);
     }
 
     @Override

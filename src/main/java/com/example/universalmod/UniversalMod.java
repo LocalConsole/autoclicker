@@ -403,19 +403,13 @@ public class UniversalMod implements ClientModInitializer {
             msg(client, I18n.t("Фулбрайт"), ClickerConfig.fullbright);
         }
         while (foodHudKey.wasPressed()) {
-            ClickerConfig.foodHud = !ClickerConfig.foodHud;
-            ClickerConfig.save();
-            msg(client, I18n.t("Показы еды"), ClickerConfig.foodHud);
+            client.setScreen(new FoodHudScreen(client.currentScreen));
         }
         while (armorHudKey.wasPressed()) {
-            ClickerConfig.armorHud = !ClickerConfig.armorHud;
-            ClickerConfig.save();
-            msg(client, I18n.t("Показ прочности"), ClickerConfig.armorHud);
+            client.setScreen(new ArmorHudScreen(client.currentScreen));
         }
         while (macrosKey.wasPressed()) {
-            ClickerConfig.macrosEnabled = !ClickerConfig.macrosEnabled;
-            ClickerConfig.save();
-            msg(client, I18n.t("Макросы"), ClickerConfig.macrosEnabled);
+            client.setScreen(new MacroScreen(client.currentScreen));
         }
         while (framesKey.wasPressed()) {
             ClickerConfig.showFrames = !ClickerConfig.showFrames;

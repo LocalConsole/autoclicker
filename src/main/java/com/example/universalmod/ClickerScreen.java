@@ -42,6 +42,24 @@ public class ClickerScreen extends Screen {
         String label;
         ClickableWidget a;
         ClickableWidget b;
+        int grp;
+        int gap;
+        boolean isHeader;
+    }
+
+    /** Тексты настроек (название + описание) по группам — для поиска по описанию. */
+    private final List<StringBuilder> groupText = new ArrayList<>();
+    private int curGrp = 0;
+
+    private int newGroup() {
+        groupText.add(new StringBuilder());
+        curGrp = groupText.size() - 1;
+        return curGrp;
+    }
+
+    private void addText(String t) {
+        if (t == null || groupText.isEmpty()) return;
+        groupText.get(curGrp).append(' ').append(t.toLowerCase(Locale.ROOT));
     }
 
     private final Screen parent;
@@ -128,8 +146,8 @@ public class ClickerScreen extends Screen {
     private void section(String title) {
         String q = searchQuery.trim().toLowerCase(Locale.ROOT);
         boolean searching = !q.isEmpty();
-        if (searching ? !sectionMatches(title, q) : tabOf(title) != tab) {
-            // раздел не подходит (другая вкладка или не найден по запросу): не показываем ни заголовок, ни настройки
+        if (!searching && tabOf(title) != tab) {
+            // раздел из другой вкладки: не показываем ни заголовок, ни настройки
             collapsed = true;
             return;
         }
@@ -139,6 +157,10 @@ public class ClickerScreen extends Screen {
         e.h = 16;
         e.key = title;
         e.header = I18n.t(title);
+        e.isHeader = true;
+        e.grp = newGroup();
+        addText(title);
+        addText(I18n.t(title));
         entries.add(e);
         cursor += 18;
         collapsed = !searching && !OPEN.contains(title);   // найденные по запросу разделы всегда раскрыты
@@ -150,9 +172,12 @@ public class ClickerScreen extends Screen {
     private void desc(String key) {
         if (collapsed) return;
         String t = Descs.get(key);
-        if (t == null) return;
         boolean sec = key.startsWith("\u00A7");
+        if (!sec) addText(I18n.t(key));
+        addText(t);
+        if (t == null) return;
         Entry e = new Entry();
+        e.grp = curGrp;
         if (!sec) cursor -= 2;
         e.y = cursor;
         e.lines = this.textRenderer.wrapLines(Text.literal(t), cw);
@@ -164,7 +189,9 @@ public class ClickerScreen extends Screen {
     /** Мелкая подсказка под настройками раздела. */
     private void note(String text) {
         if (collapsed) return;
+        addText(I18n.t(text));
         Entry e = new Entry();
+        e.grp = curGrp;
         e.y = cursor;
         e.lines = this.textRenderer.wrapLines(Text.literal(I18n.t(text)), cw);
         e.h = e.lines.size() * 9 + 2;
@@ -178,10 +205,10 @@ public class ClickerScreen extends Screen {
         e.y = cursor;
         e.h = 20;
         e.a = w;
-        addSelectableChild(w);
+        e.grp = newGroup();
+        addText(w.getMessage().getString());
         if (keyIdx >= 0) {
             e.b = keyButton(keyIdx);
-            addSelectableChild(e.b);
         }
         entries.add(e);
         cursor += ROW;
@@ -193,8 +220,9 @@ public class ClickerScreen extends Screen {
         e.y = cursor;
         e.h = 20;
         e.label = I18n.t(label);
+        e.grp = newGroup();
+        addText(e.label);
         e.b = keyButton(keyIdx);
-        addSelectableChild(e.b);
         entries.add(e);
         cursor += ROW;
         desc(label);
@@ -279,7 +307,7 @@ public class ClickerScreen extends Screen {
 
         int sfW = Math.min(150, this.width / 3);
         searchField = new TextFieldWidget(this.textRenderer, 8, 4, sfW, 16, Text.literal(""));
-        searchField.setMaxLength(32);
+        searchField.setMaxLength(48);
         searchField.setPlaceholder(Text.literal(I18n.t("Поиск настроек")));
         searchField.setText(searchQuery);
         searchField.setChangedListener(t -> {
@@ -294,6 +322,8 @@ public class ClickerScreen extends Screen {
         cursor = 0;
         collapsed = false;
         prevCollapsed = false;
+        groupText.clear();
+        curGrp = 0;
 
         section("Язык");
         button("Язык / Til / Language: " + I18n.langName(), () -> {
@@ -609,6 +639,7 @@ public class ClickerScreen extends Screen {
         section("Управление");
         labelRow("Открыть это меню", K_SETTINGS);
 
+        finishLayout(searchQuery.trim().toLowerCase(Locale.ROOT));
         contentH = cursor;
 
         doneButton = ButtonWidget.builder(Text.literal(I18n.t("Готово")), b -> this.close())
@@ -617,6 +648,53 @@ public class ClickerScreen extends Screen {
 
         scroll = Math.max(0, Math.min(scroll, maxScroll()));
         updatePositions();
+    }
+
+    /** Поиск по названиям и описаниям настроек: оставляем только подходящие настройки (или целые разделы). */
+    private void finishLayout(String q) {
+        int prevEnd = 0;
+        for (Entry e : entries) {
+            e.gap = e.y - prevEnd;
+            prevEnd = e.y + e.h;
+        }
+        if (!q.isEmpty()) {
+            List<Entry> kept = new ArrayList<>();
+            int n = entries.size();
+            int i = 0;
+            while (i < n) {
+                int j = i + 1;
+                while (j < n && !entries.get(j).isHeader) j++;
+                boolean secMatch = groupText.get(entries.get(i).grp).toString().contains(q);
+                List<Entry> part = new ArrayList<>();
+                int k = i + 1;
+                while (k < j) {
+                    int g = entries.get(k).grp;
+                    int m = k;
+                    while (m < j && entries.get(m).grp == g) m++;
+                    if (secMatch || groupText.get(g).toString().contains(q)) part.addAll(entries.subList(k, m));
+                    k = m;
+                }
+                if (secMatch || !part.isEmpty()) {
+                    kept.add(entries.get(i));
+                    kept.addAll(part);
+                }
+                i = j;
+            }
+            entries.clear();
+            entries.addAll(kept);
+            int end = 0;
+            boolean first = true;
+            for (Entry e : entries) {
+                e.y = first ? 0 : end + e.gap;
+                first = false;
+                end = e.y + e.h;
+            }
+            cursor = end;
+        }
+        for (Entry e : entries) {
+            if (e.a != null) addSelectableChild(e.a);
+            if (e.b != null) addSelectableChild(e.b);
+        }
     }
 
     private int maxScroll() {
