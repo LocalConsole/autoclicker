@@ -60,7 +60,7 @@ public class WorldOutlines {
             drawBlocks(matrices, vc, BlockFrames.sand, cp, ClickerConfig.frameSandColor, width, EdgeMask.FRAMES);
             drawBlocks(matrices, vc, BlockFrames.gravel, cp, ClickerConfig.frameGravelColor, width, EdgeMask.FRAMES);
             drawBlocks(matrices, vc, BlockFrames.glow, cp, ClickerConfig.frameGlowColor, width, EdgeMask.FRAMES);
-            drawBlocks(matrices, vc, BlockFrames.snow, cp, ClickerConfig.frameSnowColor, width, EdgeMask.FRAMES, 0.04);
+            drawBlocks(matrices, vc, BlockFrames.snow, cp, ClickerConfig.frameSnowColor, width, EdgeMask.FRAMES, -0.04);
         }
         if (invis) {
             drawBlocks(matrices, vc, InvisibleBlocks.barrier, cp, ClickerConfig.invisBarrierColor, width, EdgeMask.INVIS);

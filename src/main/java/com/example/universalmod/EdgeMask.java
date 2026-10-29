@@ -51,7 +51,7 @@ final class EdgeMask {
         return segment(p, e, 0.0);
     }
 
-    /** То же, но рамка сдвинута внутрь блока на inset — рамки соседних блоков не сливаются. */
+    /** То же, но с отступом inset внутрь блока (отрицательный — наружу, чтобы рамка не пряталась за гранями блока). */
     static double[] segment(BlockPos p, int e, double inset) {
         int axis = e / 4;
         int sb = (e & 2) != 0 ? 1 : 0;
