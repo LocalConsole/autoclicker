@@ -31,7 +31,7 @@ public class ClickerScreen extends Screen {
             K_FOOD = 13, K_ARMOR = 14, K_MACROS = 15, K_FREELOOK = 16, K_SEARCH = 17, K_ZOOM = 18,
             K_SORT_CH = 19, K_SORT_CV = 20, K_SORT_IH = 21, K_SORT_IV = 22,
             K_REFILL_H = 23, K_REFILL_O = 24, K_INVIS = 25, K_FRAMES = 26, K_TARGET = 27, K_MODS = 28, K_WP_ADD = 29, K_WP_MENU = 30, K_RULER = 31, K_RULER_CLEAR = 32,
-            K_SW_SPEAR = 33, K_SW_MACE = 34, K_SW_ELYTRA = 35, K_HITBOX = 36, K_CRYSTAL = 37;
+            K_SW_SPEAR = 33, K_SW_MACE = 34, K_SW_ELYTRA = 35, K_HITBOX = 36, K_CRYSTAL = 37, K_TRAP = 38;
 
     private static class Entry {
         int y;
@@ -83,6 +83,7 @@ public class ClickerScreen extends Screen {
             case "Быстрые клики":
             case "Блоки":
                 return 1;
+            case "Жемчуг и хорус в ловушке":
             case "Прочность брони цели":
             case "Подсветка хитбокса цели":
             case "Авто-кристалл":
@@ -486,6 +487,11 @@ public class ClickerScreen extends Screen {
                 v -> ClickerConfig.swapWait = v);
         toggle("Ждать перезарядку оружия", () -> ClickerConfig.swapWaitCooldown,
                 () -> ClickerConfig.swapWaitCooldown = !ClickerConfig.swapWaitCooldown, -1);
+
+        section("Жемчуг и хорус в ловушке");
+        toggle("Бросать жемчуг и есть хорус, даже если прицел на верстаке, калитке и т.п.", () -> ClickerConfig.trapUse,
+                () -> ClickerConfig.trapUse = !ClickerConfig.trapUse, K_TRAP);
+        note("Только для жемчуга и хоруса в руке: клик по блоку или по существу (стойка для брони, рамка, житель, лодка и т.п.) не открывает его, а использует предмет. Сундуки и верстаки с жемчугом в руке при этом не откроются.");
 
         section("Прочность брони цели");
         toggle("Показывать прочность брони игрока в прицеле", () -> ClickerConfig.targetArmorHud,

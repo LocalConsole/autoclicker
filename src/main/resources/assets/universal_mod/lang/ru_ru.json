@@ -37,5 +37,6 @@
   "key.universal_mod.swapmace": "Булава: взять из хотбара",
   "key.universal_mod.swapelytra": "Элитры: взять из хотбара",
   "key.universal_mod.hitbox": "Подсветка хитбокса цели",
-  "key.universal_mod.autocrystal": "Авто-кристалл (вкл/выкл)"
+  "key.universal_mod.autocrystal": "Авто-кристалл (вкл/выкл)",
+  "key.universal_mod.trapuse": "Жемчуг/хорус в ловушке (вкл/выкл)"
 }

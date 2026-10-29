@@ -132,6 +132,8 @@ public class ClickerConfig {
     public static boolean coordsHud = false;
     public static int coordsPos = 2;
     public static boolean itemCounter = true;
+    /** Жемчуг и хорус используются, даже если прицел на верстаке, калитке и т.п. */
+    public static boolean trapUse = false;
     /** Авто-кристалл: после установки обсидиана сверху сам ставится кристалл Энда из хотбара. */
     public static boolean autoCrystal = false;
     public static int hitboxColor = 3;
@@ -260,6 +262,7 @@ public class ClickerConfig {
         boolean coordsHud = false;
         int coordsPos = 2;
         boolean itemCounter = true;
+        boolean trapUse = false;
         boolean autoCrystal = false;
         int hitboxColor = 3;
         float zoomLevel = 4.0f;
@@ -430,6 +433,7 @@ public class ClickerConfig {
             coordsHud = d.coordsHud;
             coordsPos = Math.max(0, Math.min(3, d.coordsPos));
             itemCounter = d.itemCounter;
+            trapUse = d.trapUse;
             autoCrystal = d.autoCrystal;
             hitboxColor = Math.max(0, Math.min(Waypoints.COLORS.length - 1, d.hitboxColor));
             zoomLevel = d.zoomLevel < 1.2f ? 4.0f : Math.min(30f, d.zoomLevel);
@@ -563,6 +567,7 @@ public class ClickerConfig {
         d.coordsHud = coordsHud;
         d.coordsPos = coordsPos;
         d.itemCounter = itemCounter;
+        d.trapUse = trapUse;
         d.autoCrystal = autoCrystal;
         d.hitboxColor = hitboxColor;
         d.zoomLevel = zoomLevel;

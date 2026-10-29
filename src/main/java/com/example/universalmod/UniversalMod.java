@@ -47,7 +47,7 @@ public class UniversalMod implements ClientModInitializer {
     private static KeyBinding zoomKey;
     private static KeyBinding refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, targetOutlineKey, modListKey, wpAddKey, wpMenuKey, rulerKey, rulerClearKey;
     private static KeyBinding sortContH, sortContV, sortInvH, sortInvV;
-    private static KeyBinding swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey;
+    private static KeyBinding swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey;
     private static boolean zoomWasHeld = false;
     private static Perspective prevPerspective = Perspective.FIRST_PERSON;
 
@@ -146,6 +146,7 @@ public class UniversalMod implements ClientModInitializer {
         swapElytraKey = register("key.universal_mod.swapelytra", category);
         hitboxKey = register("key.universal_mod.hitbox", category);
         crystalKey = register("key.universal_mod.autocrystal", category);
+        trapKey = register("key.universal_mod.trapuse", category);
 
         allKeys = new KeyBinding[]{
                 toggleLeftKey, toggleRightKey, holdLeftKey, holdRightKey,
@@ -154,7 +155,7 @@ public class UniversalMod implements ClientModInitializer {
                 foodHudKey, armorHudKey, macrosKey, freelookKey, searchKey, zoomKey,
                 sortContH, sortContV, sortInvH, sortInvV,
                 refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, targetOutlineKey, modListKey, wpAddKey, wpMenuKey, rulerKey, rulerClearKey,
-                swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey
+                swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey
         };
 
         WorldOutlines.register();
@@ -171,6 +172,7 @@ public class UniversalMod implements ClientModInitializer {
         DurabilityWarn.register();
         CoordsHud.register();
         ItemCounter.register();
+        TrapUse.register();
         ContainerSearch.register();
         Zoom.register();
         InventorySort.register();
@@ -444,6 +446,11 @@ public class UniversalMod implements ClientModInitializer {
             ClickerConfig.autoCrystal = !ClickerConfig.autoCrystal;
             ClickerConfig.save();
             msg(client, I18n.t("Авто-кристалл"), ClickerConfig.autoCrystal);
+        }
+        while (trapKey.wasPressed()) {
+            ClickerConfig.trapUse = !ClickerConfig.trapUse;
+            ClickerConfig.save();
+            msg(client, I18n.t("Жемчуг и хорус в ловушке"), ClickerConfig.trapUse);
         }
         while (hitboxKey.wasPressed()) {
             ClickerConfig.hitboxHighlight = !ClickerConfig.hitboxHighlight;

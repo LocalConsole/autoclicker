@@ -37,5 +37,6 @@
   "key.universal_mod.swapmace": "Mace: take from hotbar",
   "key.universal_mod.swapelytra": "Elytra: take from hotbar",
   "key.universal_mod.hitbox": "Target hitbox highlight",
-  "key.universal_mod.autocrystal": "Auto crystal (on/off)"
+  "key.universal_mod.autocrystal": "Auto crystal (on/off)",
+  "key.universal_mod.trapuse": "Pearl/chorus in a trap (on/off)"
 }

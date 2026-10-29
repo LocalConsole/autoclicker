@@ -118,6 +118,9 @@ public class I18n {
         a("Управление", "Boshqaruv", "Controls");
         a("Язык", "Til", "Language");
         a("Авто", "Avto", "Auto");
+        a("Жемчуг и хорус в ловушке", "Tuzoqda marvarid va xorus", "Pearl and chorus in a trap");
+        a("Бросать жемчуг и есть хорус, даже если прицел на верстаке, калитке и т.п.", "Nishon ustaxona, darvoza va h.k. ga qaratilgan bo'lsa ham marvarid otish va xorus yeyish", "Throw pearls and eat chorus even when aiming at a crafting table, gate, etc.");
+        a("Только для жемчуга и хоруса в руке: клик по блоку или по существу (стойка для брони, рамка, житель, лодка и т.п.) не открывает его, а использует предмет. Сундуки и верстаки с жемчугом в руке при этом не откроются.", "Faqat qo'ldagi marvarid va xorus uchun: blokka yoki mavjudotga (zirh tayanchi, ramka, qishloq aholisi, qayiq va h.k.) bosish uni ochmaydi, buyumni ishlatadi. Marvarid qo'lda bo'lsa, sandiq va ustaxona ochilmaydi.", "Only for a pearl or chorus fruit in hand: clicking a block or entity (armor stand, item frame, villager, boat, etc.) uses the item instead of interacting. Chests and crafting tables won't open while holding a pearl.");
         a("Поиск настроек", "Sozlamalarni qidirish", "Search settings");
         a("Профили настроек", "Sozlamalar profillari", "Settings profiles");
         a("Сохранить в профиль ", "Profilga saqlash ", "Save to profile ");
