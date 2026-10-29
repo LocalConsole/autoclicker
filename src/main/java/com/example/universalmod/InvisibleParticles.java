@@ -1,14 +1,17 @@
 package com.example.universalmod;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.util.math.Box;
 
+import java.util.List;
+
 /**
- * Замена «зельных» частиц у игроков с эффектом невидимости на более заметные ванильные частицы
+ * Замена «зельных» частиц у игроков и мобов с эффектом невидимости на более заметные ванильные частицы
  * (сердечки, огонь и т.д.). Выбор — ползунок в настройках; 0 = ничего не менять.
  */
 public class InvisibleParticles {
@@ -47,10 +50,13 @@ public class InvisibleParticles {
         if (client.world == null) return null;
         ParticleEffect r = effectFor(idx);
         if (r == null) return null;
-        for (PlayerEntity p : client.world.getPlayers()) {
-            if (!p.hasStatusEffect(StatusEffects.INVISIBILITY)) continue;
-            Box box = p.getBoundingBox().expand(0.5);
-            if (box.contains(x, y, z)) return r;
+        // Ищем рядом с частицей существо с невидимостью: игрока, а при включённой настройке и любого моба
+        Box near = new Box(x - 3.0, y - 3.0, z - 3.0, x + 3.0, y + 3.0, z + 3.0);
+        List<LivingEntity> list = client.world.getEntitiesByClass(LivingEntity.class, near,
+                e -> e.hasStatusEffect(StatusEffects.INVISIBILITY)
+                        && (ClickerConfig.invisMobs || e instanceof PlayerEntity));
+        for (LivingEntity e : list) {
+            if (e.getBoundingBox().expand(0.5).contains(x, y, z)) return r;
         }
         return null;
     }

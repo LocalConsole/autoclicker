@@ -36,6 +36,8 @@ public class InventorySort {
 
     private static final ArrayDeque<Integer> QUEUE = new ArrayDeque<>();
     private static ScreenHandler taskHandler = null;
+    private static final ArrayDeque<Integer> DROPS = new ArrayDeque<>();
+    private static ScreenHandler dropHandler = null;
     private static final boolean[] wasDown = new boolean[4];
 
     public static void register() {
@@ -49,6 +51,7 @@ public class InventorySort {
             if (ClickerConfig.sortButtons) {
                 addPair(screen, client, left + 176 - 32, top + 4, true);
                 addMovePair(screen, client, left + 108, top + 4, true);
+                addDropButton(screen, client, left + 90, top + 4);
             }
             if (ClickerConfig.sortInvButtons) {
                 addPair(screen, client, left + 176 - 32, top + bh - 97, false);
@@ -89,6 +92,34 @@ public class InventorySort {
                 .build());
     }
 
+    /** Выбросить предметы из контейнера на землю. С предметом в руке — только такие же. */
+    private static void addDropButton(Screen screen, MinecraftClient client, int x, int y) {
+        Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("\u2715"),
+                        b -> startDrop(client))
+                .dimensions(x, y, 16, 12)
+                .tooltip(Tooltip.of(Text.literal(I18n.t("Выбросить всё из контейнера (с предметом в руке — только такие же)"))))
+                .build());
+    }
+
+    public static void startDrop(MinecraftClient client) {
+        if (client.player == null || !QUEUE.isEmpty() || !DROPS.isEmpty()) return;
+        if (!isContainerScreen(client.currentScreen)) return;
+        ScreenHandler handler = client.player.currentScreenHandler;
+        if (handler == null || !handler.getCursorStack().isEmpty()) return;
+
+        ItemStack held = client.player.getMainHandStack();
+        Item filter = held.isEmpty() ? null : held.getItem();
+
+        for (Slot sl : handler.slots) {
+            if (sl.inventory == client.player.getInventory()) continue;
+            ItemStack st = sl.getStack();
+            if (st.isEmpty() || (filter != null && st.getItem() != filter)) continue;
+            if (!sl.canTakeItems(client.player)) continue;
+            DROPS.add(sl.id);
+        }
+        if (!DROPS.isEmpty()) dropHandler = handler;
+    }
+
     private static boolean isContainerScreen(Screen s) {
         return s instanceof GenericContainerScreen || s instanceof ShulkerBoxScreen;
     }
@@ -98,7 +129,19 @@ public class InventorySort {
     public static void tick(MinecraftClient client) {
         if (client.player == null || client.interactionManager == null) {
             QUEUE.clear();
+            DROPS.clear();
             return;
+        }
+        if (!DROPS.isEmpty()) {
+            if (dropHandler == null || client.player.currentScreenHandler != dropHandler) {
+                DROPS.clear();
+            } else {
+                for (int i = 0; i < ClickerConfig.dropSpeed && !DROPS.isEmpty(); i++) {
+                    // кнопка 1 + THROW = выбросить весь стак (как Ctrl+Q)
+                    client.interactionManager.clickSlot(dropHandler.syncId, DROPS.poll(), 1,
+                            SlotActionType.THROW, client.player);
+                }
+            }
         }
         if (!QUEUE.isEmpty()) {
             if (taskHandler == null || client.player.currentScreenHandler != taskHandler) {

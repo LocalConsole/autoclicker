@@ -344,33 +344,7 @@ public class ContainerSearch {
         return client.player.getEyePos();
     }
 
-    /** true — старая рамка поверх экрана, видна сквозь стены; false — ванильные рамки в мире. */
-    private static final boolean XRAY_OVERLAY = false;
-
-    /** Контейнеры, подходящие под поиск, — для ванильной отрисовки в мире. */
-    public static java.util.List<WorldOutlines.Mark> worldMarks(MinecraftClient mc) {
-        java.util.List<WorldOutlines.Mark> out = new java.util.ArrayList<>();
-        Map<BlockPos, String> data = active();
-        if (XRAY_OVERLAY || !ClickerConfig.containerSearch || data.isEmpty() || mc.player == null || mc.world == null) return out;
-        String[] tokens = tokens();
-        if (tokens.length == 0) return out;
-        double r2 = (double) ClickerConfig.searchRadius * ClickerConfig.searchRadius;
-        Vec3d eye = mc.player.getEyePos();
-        float pulse = 0.5f + 0.5f * (float) Math.sin(System.currentTimeMillis() / 250.0);
-        int rgb = pulse > 0.5f ? 0xFF3030 : 0xFF8080;
-        for (Map.Entry<BlockPos, String> e : data.entrySet()) {
-            BlockPos p = e.getKey();
-            double dx = p.getX() + 0.5 - eye.x, dy = p.getY() + 0.5 - eye.y, dz = p.getZ() + 0.5 - eye.z;
-            if (dx * dx + dy * dy + dz * dz > r2) continue;
-            if (!mc.world.isChunkLoaded(p) || !isContainer(mc.world.getBlockState(p))) continue;
-            if (!matches(e.getValue(), tokens)) continue;
-            out.add(WorldOutlines.Mark.of(p, rgb));
-        }
-        return out;
-    }
-
     private static void render(DrawContext ctx) {
-        if (!XRAY_OVERLAY) return;
         Map<BlockPos, String> data = active();
         if (!ClickerConfig.containerSearch || data.isEmpty()) return;
         String[] tokens = tokens();
@@ -425,13 +399,19 @@ public class ContainerSearch {
             {0, 4}, {1, 5}, {2, 6}, {3, 7}
     };
 
-    private static void drawBox(DrawContext ctx, BlockPos p, Vec3d cp, Vector3f right, Vector3f up, Vector3f fwd,
+    static void drawBox(DrawContext ctx, BlockPos p, Vec3d cp, Vector3f right, Vector3f up, Vector3f fwd,
+                                int sw, int sh, double aspect, double tanHalf, int glow, int core) {
+        drawBox(ctx, new net.minecraft.util.math.Box(p), cp, right, up, fwd, sw, sh, aspect, tanHalf, glow, core);
+    }
+
+    /** Каркас произвольной рамки (например, хитбокса сущности). */
+    static void drawBox(DrawContext ctx, net.minecraft.util.math.Box box, Vec3d cp, Vector3f right, Vector3f up, Vector3f fwd,
                                 int sw, int sh, double aspect, double tanHalf, int glow, int core) {
         double[][] c = new double[8][3]; // x (вправо), y (вверх), z (вперёд) в системе камеры
         for (int i = 0; i < 8; i++) {
-            double wx = p.getX() + (i & 1) - cp.x;
-            double wy = p.getY() + ((i >> 1) & 1) - cp.y;
-            double wz = p.getZ() + ((i >> 2) & 1) - cp.z;
+            double wx = ((i & 1) == 0 ? box.minX : box.maxX) - cp.x;
+            double wy = (((i >> 1) & 1) == 0 ? box.minY : box.maxY) - cp.y;
+            double wz = (((i >> 2) & 1) == 0 ? box.minZ : box.maxZ) - cp.z;
             c[i][0] = wx * right.x + wy * right.y + wz * right.z;
             c[i][1] = wx * up.x + wy * up.y + wz * up.z;
             c[i][2] = wx * fwd.x + wy * fwd.y + wz * fwd.z;
@@ -462,7 +442,7 @@ public class ContainerSearch {
     }
 
     /** Обрезка отрезка по экрану (Лян–Барски). */
-    private static double[] clip(double x1, double y1, double x2, double y2, double w, double h) {
+    static double[] clip(double x1, double y1, double x2, double y2, double w, double h) {
         if (Double.isNaN(x1 + y1 + x2 + y2) || Double.isInfinite(x1 + y1 + x2 + y2)) return null;
         double t0 = 0, t1 = 1, dx = x2 - x1, dy = y2 - y1;
         double[] p = {-dx, dx, -dy, dy};
@@ -480,7 +460,7 @@ public class ContainerSearch {
     }
 
     /** Линия толщиной th из прямоугольников-«пробегов» (мало вызовов fill). */
-    private static void line(DrawContext c, double x1, double y1, double x2, double y2, int th, int color) {
+    static void line(DrawContext c, double x1, double y1, double x2, double y2, int th, int color) {
         boolean steep = Math.abs(y2 - y1) > Math.abs(x2 - x1);
         if (steep) {
             double t = x1; x1 = y1; y1 = t;

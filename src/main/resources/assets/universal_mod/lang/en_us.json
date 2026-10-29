@@ -26,7 +26,16 @@
   "key.universal_mod.refillhotbar": "Auto-refill hotbar",
   "key.universal_mod.refilloffhand": "Auto-refill offhand",
   "key.universal_mod.invisible": "Invisible blocks",
+  "key.universal_mod.targetoutline": "Targeted block outline",
+  "key.universal_mod.modlist": "Mod list",
+  "key.universal_mod.wpadd": "Place waypoint here",
+  "key.universal_mod.wpmenu": "Waypoint menu",
+  "key.universal_mod.ruler": "Ruler: set point",
+  "key.universal_mod.rulerclear": "Ruler: clear",
   "key.universal_mod.frames": "Block outlines",
-  "key.universal_mod.containerhl": "Container highlight: show/hide",
-  "key.universal_mod.outline": "Block outline: cycle color"
+  "key.universal_mod.swapspear": "Spear: take from hotbar",
+  "key.universal_mod.swapmace": "Mace: take from hotbar",
+  "key.universal_mod.swapelytra": "Elytra: take from hotbar",
+  "key.universal_mod.hitbox": "Target hitbox highlight",
+  "key.universal_mod.autocrystal": "Auto crystal (on/off)"
 }

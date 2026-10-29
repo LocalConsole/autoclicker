@@ -4,13 +4,13 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.Click;
 import net.minecraft.client.gui.hud.ChatHud;
 import net.minecraft.client.gui.hud.ChatHudLine;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.MutableText;
 import net.minecraft.text.Style;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableTextContent;
 import net.minecraft.util.Formatting;
-
 import org.lwjgl.glfw.GLFW;
 
 import java.io.File;
@@ -82,14 +82,17 @@ public class ChatTools {
         }
     }
 
+    private static boolean ctrlDown(MinecraftClient client) {
+        long w = client.getWindow().getHandle();
+        return GLFW.glfwGetKey(w, GLFW.GLFW_KEY_LEFT_CONTROL) == GLFW.GLFW_PRESS
+                || GLFW.glfwGetKey(w, GLFW.GLFW_KEY_RIGHT_CONTROL) == GLFW.GLFW_PRESS;
+    }
+
     /** Возвращает true, если клик обработан (строка скопирована). */
     public static boolean tryCopy(Click click) {
         try {
-            if (!ClickerConfig.chatCopy || click.button() != 0) return false;
+            if (!ClickerConfig.chatCopy || click.button() != 0 || !ctrlDown(MinecraftClient.getInstance())) return false;
             MinecraftClient mc = MinecraftClient.getInstance();
-            long win = mc.getWindow().getHandle();
-            if (GLFW.glfwGetKey(win, GLFW.GLFW_KEY_LEFT_CONTROL) != GLFW.GLFW_PRESS
-                    && GLFW.glfwGetKey(win, GLFW.GLFW_KEY_RIGHT_CONTROL) != GLFW.GLFW_PRESS) return false;
             ChatHud hud = mc.inGameHud.getChatHud();
             resolveFields();
             if (visibleField == null) return false;
@@ -100,7 +103,7 @@ public class ChatTools {
             double spacing = mc.options.getChatLineSpacing().getValue();
             double x = click.x() / scale - 4.0;
             double y = (mc.getWindow().getScaledHeight() - 40 - click.y()) / (scale * (spacing + 1.0));
-            if (x < -4.0 || x > Math.floor(Math.floor(mc.options.getChatWidth().getValue() * 280.0 + 40.0) / scale)) return false;
+            if (x < -4.0 || x > Math.floor((mc.options.getChatWidth().getValue() * 280.0 + 40.0) / scale)) return false;
             if (y < 0 || y >= hud.getVisibleLineCount()) return false;
             int idx = (int) (y / 9.0 + scrolled);
             if (idx < 0 || idx >= vis.size()) return false;

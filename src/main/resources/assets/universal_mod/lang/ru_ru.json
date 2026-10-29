@@ -26,7 +26,16 @@
   "key.universal_mod.refillhotbar": "Автозаполнение хотбара",
   "key.universal_mod.refilloffhand": "Автозаполнение второй руки",
   "key.universal_mod.invisible": "Невидимые блоки",
+  "key.universal_mod.targetoutline": "Контур выбранного блока",
+  "key.universal_mod.modlist": "Список модов",
+  "key.universal_mod.wpadd": "Поставить метку здесь",
+  "key.universal_mod.wpmenu": "Метки (меню)",
+  "key.universal_mod.ruler": "Линейка: поставить точку",
+  "key.universal_mod.rulerclear": "Линейка: очистить",
   "key.universal_mod.frames": "Рамки блоков",
-  "key.universal_mod.containerhl": "Подсветка контейнеров: показать/скрыть",
-  "key.universal_mod.outline": "Контур блока: переключить цвет"
+  "key.universal_mod.swapspear": "Копьё: взять из хотбара",
+  "key.universal_mod.swapmace": "Булава: взять из хотбара",
+  "key.universal_mod.swapelytra": "Элитры: взять из хотбара",
+  "key.universal_mod.hitbox": "Подсветка хитбокса цели",
+  "key.universal_mod.autocrystal": "Авто-кристалл (вкл/выкл)"
 }

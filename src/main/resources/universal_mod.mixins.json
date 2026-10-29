@@ -15,7 +15,8 @@
     "MouseMixin",
     "HandledScreenMixin",
     "ParticleManagerMixin",
-    "ClientPlayNetworkHandlerMixin"
+    "WorldRendererMixin",
+    "SplashOverlayMixin"
   ],
   "injectors": {
     "defaultRequire": 1

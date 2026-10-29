@@ -26,7 +26,16 @@
   "key.universal_mod.refillhotbar": "Xotbarni avto-to'ldirish",
   "key.universal_mod.refilloffhand": "Ikkinchi qo'lni avto-to'ldirish",
   "key.universal_mod.invisible": "Ko'rinmas bloklar",
+  "key.universal_mod.targetoutline": "Tanlangan blok konturi",
+  "key.universal_mod.modlist": "Modlar ro'yxati",
+  "key.universal_mod.wpadd": "Belgini shu yerga qo'yish",
+  "key.universal_mod.wpmenu": "Belgilar menyusi",
+  "key.universal_mod.ruler": "Chizg'ich: nuqta qo'yish",
+  "key.universal_mod.rulerclear": "Chizg'ich: tozalash",
   "key.universal_mod.frames": "Blok ramkalari",
-  "key.universal_mod.containerhl": "Konteyner yoritish: ko'rsatish/yashirish",
-  "key.universal_mod.outline": "Blok konturi: rangni almashtirish"
+  "key.universal_mod.swapspear": "Nayza: xotbardan olish",
+  "key.universal_mod.swapmace": "Gurzi: xotbardan olish",
+  "key.universal_mod.swapelytra": "Elitra: xotbardan olish",
+  "key.universal_mod.hitbox": "Nishon hitboksini belgilash",
+  "key.universal_mod.autocrystal": "Avto-kristall (yoq/o'ch)"
 }

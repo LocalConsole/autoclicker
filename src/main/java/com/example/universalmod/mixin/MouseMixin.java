@@ -1,5 +1,6 @@
 package com.example.universalmod.mixin;
 
+import com.example.universalmod.SlotTools;
 import com.example.universalmod.Zoom;
 import net.minecraft.client.Mouse;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,5 +17,11 @@ public abstract class MouseMixin {
             return 0;
         }
         return vertical;
+    }
+
+    /** Колёсико над слотом в инвентаре переносит предметы (как Mouse Tweaks / Item Scroller). */
+    @ModifyVariable(method = "onMouseScroll", at = @At("HEAD"), argsOnly = true, ordinal = 1, require = 0)
+    private double universalmod$slotScroll(double vertical) {
+        return SlotTools.scrollHook(vertical) ? 0 : vertical;
     }
 }

@@ -45,8 +45,9 @@ public class UniversalMod implements ClientModInitializer {
     private static KeyBinding freelookKey;
     private static KeyBinding searchKey;
     private static KeyBinding zoomKey;
-    private static KeyBinding refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, outlineKey, containerHlKey;
+    private static KeyBinding refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, targetOutlineKey, modListKey, wpAddKey, wpMenuKey, rulerKey, rulerClearKey;
     private static KeyBinding sortContH, sortContV, sortInvH, sortInvV;
+    private static KeyBinding swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey;
     private static boolean zoomWasHeld = false;
     private static Perspective prevPerspective = Perspective.FIRST_PERSON;
 
@@ -65,7 +66,7 @@ public class UniversalMod implements ClientModInitializer {
             "Быстрый ЛКМ", "Быстрый ПКМ", "Быстрая установка", "Быстрое разрушение",
             "ЛКМ по кулдауну", "Просмотр шалкера", "Шалкер: режим", "Фулбрайт", "Открыть настройки", "Показы еды", "Показ прочности", "Макросы", "Осмотр камеры (зажать)", "Поиск в контейнерах", "Зум (зажать)",
             "Сорт. контейнера: по горизонтали", "Сорт. контейнера: по вертикали", "Сорт. инвентаря: по горизонтали", "Сорт. инвентаря: по вертикали",
-            "Автозаполнение хотбара", "Автозаполнение второй руки", "Невидимые блоки", "Рамки блоков", "Контур блока: переключить цвет"
+            "Автозаполнение хотбара", "Автозаполнение второй руки", "Невидимые блоки", "Рамки блоков"
     };
 
     public static KeyBinding[] keys() { return allKeys; }
@@ -97,7 +98,7 @@ public class UniversalMod implements ClientModInitializer {
     public void onInitializeClient() {
         ClickerConfig.load();
         MacroConfig.load();
-        QuickUseConfig.load();
+        Waypoints.load();
         // Состояние автокликера и «зажать» помним между запусками и заходами в мир
         leftOn = ClickerConfig.autoLeft;
         rightOn = ClickerConfig.autoRight;
@@ -134,8 +135,17 @@ public class UniversalMod implements ClientModInitializer {
         refillOffhandKey = register("key.universal_mod.refilloffhand", category);
         invisibleKey = register("key.universal_mod.invisible", category);
         framesKey = register("key.universal_mod.frames", category);
-        outlineKey = register("key.universal_mod.outline", category);
-        containerHlKey = register("key.universal_mod.containerhl", category);
+        targetOutlineKey = register("key.universal_mod.targetoutline", category);
+        modListKey = register("key.universal_mod.modlist", category);
+        wpAddKey = register("key.universal_mod.wpadd", category);
+        wpMenuKey = register("key.universal_mod.wpmenu", category);
+        rulerKey = register("key.universal_mod.ruler", category);
+        rulerClearKey = register("key.universal_mod.rulerclear", category);
+        swapSpearKey = register("key.universal_mod.swapspear", category);
+        swapMaceKey = register("key.universal_mod.swapmace", category);
+        swapElytraKey = register("key.universal_mod.swapelytra", category);
+        hitboxKey = register("key.universal_mod.hitbox", category);
+        crystalKey = register("key.universal_mod.autocrystal", category);
 
         allKeys = new KeyBinding[]{
                 toggleLeftKey, toggleRightKey, holdLeftKey, holdRightKey,
@@ -143,18 +153,28 @@ public class UniversalMod implements ClientModInitializer {
                 cooldownKey, shulkerPreviewKey, shulkerModeKey, fullbrightKey, settingsKey,
                 foodHudKey, armorHudKey, macrosKey, freelookKey, searchKey, zoomKey,
                 sortContH, sortContV, sortInvH, sortInvV,
-                refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, outlineKey, containerHlKey
+                refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, targetOutlineKey, modListKey, wpAddKey, wpMenuKey, rulerKey, rulerClearKey,
+                swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey
         };
 
+        WorldOutlines.register();
+        AutoCrystal.register();
+        Ruler.register();
+        Waypoints.register();
+        ModListScreen.register();
         ShulkerTooltip.register();
         FoodHud.register();
         ArmorHud.register();
+        TargetArmorHud.register();
+        EffectsHud.register();
+        DeathMark.register();
+        DurabilityWarn.register();
+        CoordsHud.register();
+        ItemCounter.register();
         ContainerSearch.register();
-        WorldOutlines.register();
         Zoom.register();
         InventorySort.register();
         MacroManager.register();
-        QuickUse.register();
         AutoRefill.registerHud();
 
         ClientTickEvents.START_CLIENT_TICK.register(UniversalMod::onTick);
@@ -299,20 +319,23 @@ public class UniversalMod implements ClientModInitializer {
             FreeLook.active = false;
             Zoom.held = false;
             MacroManager.reset();
-            QuickUse.reset();
             AutoRefill.reset();
+            HotbarSwap.reset();
+            AutoDig.reset();
+            AutoCrystal.reset();
             InvisibleBlocks.reset();
             BlockFrames.reset();
             return;
         }
 
         MacroManager.tick(client);
-        QuickUse.tick(client);
         InventorySort.tick(client);
         AutoRefill.tick(client);
+        HotbarSwap.tick(client);
+        AutoDig.tick(client);
+        AutoCrystal.tick(client);
         InvisibleBlocks.tick(client);
         BlockFrames.tick(client);
-        TargetOutline.tick(client);
         updateFreelook(client);
         Zoom.held = ClickerConfig.zoom && zoomKey.isPressed() && client.currentScreen == null;
         if (zoomWasHeld && !Zoom.held && Zoom.dirty) {
@@ -392,21 +415,15 @@ public class UniversalMod implements ClientModInitializer {
             ClickerConfig.save();
             msg(client, I18n.t("Макросы"), ClickerConfig.macrosEnabled);
         }
-        while (outlineKey.wasPressed()) {
-            ClickerConfig.targetOutline = (ClickerConfig.targetOutline + 1) % TargetOutline.NAMES.length;
-            ClickerConfig.save();
-            client.player.sendMessage(Text.literal(I18n.t("Контур блока") + ": "
-                    + I18n.t(TargetOutline.NAMES[ClickerConfig.targetOutline])), true);
-        }
-        while (containerHlKey.wasPressed()) {
-            ClickerConfig.containerSearch = !ClickerConfig.containerSearch;
-            ClickerConfig.save();
-            msg(client, I18n.t("Подсветка контейнеров"), ClickerConfig.containerSearch);
-        }
         while (framesKey.wasPressed()) {
             ClickerConfig.showFrames = !ClickerConfig.showFrames;
             ClickerConfig.save();
             msg(client, I18n.t("Рамки блоков"), ClickerConfig.showFrames);
+        }
+        while (targetOutlineKey.wasPressed()) {
+            ClickerConfig.targetOutline = !ClickerConfig.targetOutline;
+            ClickerConfig.save();
+            msg(client, I18n.t("Контур блока"), ClickerConfig.targetOutline);
         }
         while (invisibleKey.wasPressed()) {
             ClickerConfig.showInvisible = !ClickerConfig.showInvisible;
@@ -423,10 +440,44 @@ public class UniversalMod implements ClientModInitializer {
             ClickerConfig.save();
             msg(client, I18n.t("Автозаполнение второй руки"), ClickerConfig.refillOffhand);
         }
+        while (crystalKey.wasPressed()) {
+            ClickerConfig.autoCrystal = !ClickerConfig.autoCrystal;
+            ClickerConfig.save();
+            msg(client, I18n.t("Авто-кристалл"), ClickerConfig.autoCrystal);
+        }
+        while (hitboxKey.wasPressed()) {
+            ClickerConfig.hitboxHighlight = !ClickerConfig.hitboxHighlight;
+            ClickerConfig.save();
+            msg(client, I18n.t("Подсветка хитбокса цели"), ClickerConfig.hitboxHighlight);
+        }
+        while (swapSpearKey.wasPressed()) {
+            HotbarSwap.press(client, HotbarSwap.SPEAR);
+        }
+        while (swapMaceKey.wasPressed()) {
+            HotbarSwap.press(client, HotbarSwap.MACE);
+        }
+        while (swapElytraKey.wasPressed()) {
+            HotbarSwap.press(client, HotbarSwap.ELYTRA);
+        }
         while (searchKey.wasPressed()) {
             if (client.currentScreen == null) {
                 client.setScreen(new ContainerSearchScreen(null));
             }
+        }
+        while (rulerKey.wasPressed()) {
+            Ruler.press(client);
+        }
+        while (rulerClearKey.wasPressed()) {
+            Ruler.clear(client);
+        }
+        while (wpAddKey.wasPressed()) {
+            Waypoints.addHere(client);
+        }
+        while (wpMenuKey.wasPressed()) {
+            client.setScreen(new WaypointScreen(client.currentScreen));
+        }
+        while (modListKey.wasPressed()) {
+            client.setScreen(new ModListScreen(client.currentScreen));
         }
         while (settingsKey.wasPressed()) {
             if (client.currentScreen == null) {

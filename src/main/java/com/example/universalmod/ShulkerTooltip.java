@@ -5,6 +5,7 @@ import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ContainerComponent;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.registry.Registries;
 import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableTextContent;
 import net.minecraft.util.Formatting;
@@ -30,27 +31,44 @@ public class ShulkerTooltip {
             }
 
             if (ClickerConfig.shulkerSum) {
-                // Режим "сумма": одинаковые предметы считаются вместе
-                Map<Item, Integer> totals = new LinkedHashMap<>();
-                Map<Item, Text> names = new LinkedHashMap<>();
+                // Режим "сумма": одинаковые предметы считаются вместе, переименованные — отдельными строками
+                Map<String, ItemStack> first = new LinkedHashMap<>();
+                Map<String, Integer> totals = new LinkedHashMap<>();
                 for (ItemStack s : container.iterateNonEmpty()) {
-                    totals.merge(s.getItem(), s.getCount(), Integer::sum);
-                    names.putIfAbsent(s.getItem(), s.getName());
+                    Text custom = s.get(DataComponentTypes.CUSTOM_NAME);
+                    String key = Registries.ITEM.getId(s.getItem()) + "|" + (custom == null ? "" : custom.getString());
+                    totals.merge(key, s.getCount(), Integer::sum);
+                    first.putIfAbsent(key, s);
                 }
-                for (Map.Entry<Item, Integer> e : totals.entrySet()) {
+                for (Map.Entry<String, Integer> e : totals.entrySet()) {
                     lines.add(Text.empty()
-                            .append(names.get(e.getKey()))
+                            .append(label(first.get(e.getKey())))
                             .append(Text.literal(" x" + e.getValue()).formatted(Formatting.GRAY)));
                 }
             } else {
                 // Режим "по слотам": каждый стак отдельной строкой
                 for (ItemStack s : container.iterateNonEmpty()) {
                     lines.add(Text.empty()
-                            .append(s.getName())
+                            .append(label(s))
                             .append(Text.literal(" x" + s.getCount()).formatted(Formatting.GRAY)));
                 }
             }
         });
+    }
+
+    /** Название как в игре: у переименованного предмета оно курсивом, а рядом серым настоящее название. */
+    private static Text label(ItemStack s) {
+        if (s.get(DataComponentTypes.CUSTOM_NAME) != null) {
+            return Text.empty()
+                    .append(Text.empty().append(s.getName()).formatted(Formatting.ITALIC))
+                    .append(Text.literal(" [").formatted(Formatting.GRAY))
+                    .append(Text.empty().append(s.getItem().getName()).formatted(Formatting.GRAY))
+                    .append(Text.literal("]").formatted(Formatting.GRAY))
+                    .append(ClickerConfig.shulkerRenamedNote
+                            ? Text.literal(" (" + I18n.t("переименован на наковальне") + ")").formatted(Formatting.DARK_GRAY)
+                            : Text.empty());
+        }
+        return s.getName();
     }
 
     private static boolean isVanillaContainerLine(Text t) {
