@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "MinecraftClientAccessor",
+    "MinecraftClientMixin",
     "InteractionManagerAccessor",
     "SimpleOptionAccessor",
     "ChatScreenMixin",

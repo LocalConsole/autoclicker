@@ -47,7 +47,7 @@ public class UniversalMod implements ClientModInitializer {
     private static KeyBinding zoomKey;
     private static KeyBinding refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, targetOutlineKey, modListKey, wpAddKey, wpMenuKey, rulerKey, rulerClearKey;
     private static KeyBinding sortContH, sortContV, sortInvH, sortInvV;
-    private static KeyBinding swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey;
+    private static KeyBinding swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey, farmKey;
     private static boolean zoomWasHeld = false;
     private static Perspective prevPerspective = Perspective.FIRST_PERSON;
 
@@ -57,6 +57,8 @@ public class UniversalMod implements ClientModInitializer {
     // Зажать кнопку
     private static boolean leftHold = false;
     private static boolean rightHold = false;
+    // «Фарм руды»: прежние значения быстрых режимов, чтобы вернуть их при выключении
+    private static boolean farmPrevPlace = false, farmPrevBreak = false;
     private static double leftAcc = 0;
     private static double rightAcc = 0;
 
@@ -147,6 +149,7 @@ public class UniversalMod implements ClientModInitializer {
         hitboxKey = register("key.universal_mod.hitbox", category);
         crystalKey = register("key.universal_mod.autocrystal", category);
         trapKey = register("key.universal_mod.trapuse", category);
+        farmKey = register("key.universal_mod.orefarm", category);
 
         allKeys = new KeyBinding[]{
                 toggleLeftKey, toggleRightKey, holdLeftKey, holdRightKey,
@@ -155,7 +158,7 @@ public class UniversalMod implements ClientModInitializer {
                 foodHudKey, armorHudKey, macrosKey, freelookKey, searchKey, zoomKey,
                 sortContH, sortContV, sortInvH, sortInvV,
                 refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, targetOutlineKey, modListKey, wpAddKey, wpMenuKey, rulerKey, rulerClearKey,
-                swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey
+                swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey, farmKey
         };
 
         WorldOutlines.register();
@@ -247,6 +250,26 @@ public class UniversalMod implements ClientModInitializer {
             FreeLook.active = false;
             client.options.setPerspective(prevPerspective);
         }
+    }
+
+    /** Одна клавиша: зажать ЛКМ + зажать ПКМ + быстрая установка + быстрое разрушение (переработка руды на удачу). */
+    private static void toggleOreFarm(MinecraftClient client) {
+        boolean active = leftHold && rightHold;
+        if (!active) {
+            farmPrevPlace = ClickerConfig.fastPlace;
+            farmPrevBreak = ClickerConfig.fastBreak;
+            ClickerConfig.fastPlace = true;
+            ClickerConfig.fastBreak = true;
+            setLeftHold(true);
+            setRightHold(true);
+        } else {
+            ClickerConfig.fastPlace = farmPrevPlace;
+            ClickerConfig.fastBreak = farmPrevBreak;
+            setLeftHold(false);
+            setRightHold(false);
+        }
+        ClickerConfig.save();
+        msg(client, I18n.t("Фарм руды"), !active);
     }
 
     private static void msg(MinecraftClient client, String name, boolean on) {
@@ -440,6 +463,9 @@ public class UniversalMod implements ClientModInitializer {
             ClickerConfig.autoCrystal = !ClickerConfig.autoCrystal;
             ClickerConfig.save();
             msg(client, I18n.t("Авто-кристалл"), ClickerConfig.autoCrystal);
+        }
+        while (farmKey.wasPressed()) {
+            toggleOreFarm(client);
         }
         while (trapKey.wasPressed()) {
             ClickerConfig.trapUse = !ClickerConfig.trapUse;
