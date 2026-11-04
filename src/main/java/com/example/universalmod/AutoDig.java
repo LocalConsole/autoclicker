@@ -37,6 +37,16 @@ public class AutoDig {
             reset();
             return;
         }
+        // Пока открыт инвентарь, сундук или любой другой экран — не вмешиваемся.
+        // Иначе: берёшь инструмент в курсор, слот становится пустым, авто-копалка считает его
+        // сломанным и выключает «Зажать ЛКМ», а switchNext вдобавок переключает слот прямо в контейнере.
+        // Все остальные модули (AutoRefill, HotbarSwap, AutoCrystal) такую проверку делают, этот — нет.
+        if (client.currentScreen != null) {
+            lastSlot = -1;          // забываем состояние, чтобы после закрытия не сработало ложное «сломан»
+            lastWasTool = false;
+            cooldown = 0;
+            return;
+        }
         PlayerInventory inv = client.player.getInventory();
         int slot = inv.getSelectedSlot();
         ItemStack stack = inv.getStack(slot);

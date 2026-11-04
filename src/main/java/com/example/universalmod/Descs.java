@@ -65,6 +65,7 @@ public class Descs {
 
         // ---------- Блоки ----------
         d("Быстрая установка", "Убирает задержку между установками блоков.", "Bloklarni qo'yish orasidagi kechikishni olib tashlaydi.", "Removes the delay between block placements.");
+        d("Точная установка", "Ставит ровно один блок на каждую новую клетку под прицелом: при ведении мышью нет ни пропусков, ни дублей.", "Nishon ostidagi har bir yangi katakka aniq bitta blok qo'yadi: sichqonchani yurgizganda na o'tkazib yuborish, na takror bo'ladi.", "Places exactly one block per new cell under the crosshair: no gaps and no duplicates while dragging.");
         d("Вода: быстрый ПКМ", "Если в руке ведро воды, ПКМ работает как быстрый клик (число кликов за тик берётся из быстрых кликов).", "Qo'lda suv chelagi bo'lsa, ONG tez klik bo'ladi (tikdagi kliklar soni tez kliklardan olinadi).", "With a water bucket in hand, right click acts as fast click (clicks per tick come from the fast click setting).");
         d("Быстрое разрушение", "Убирает задержку между разрушением блоков.", "Bloklarni buzish orasidagi kechikishni olib tashlaydi.", "Removes the delay between breaking blocks.");
 
@@ -101,6 +102,22 @@ public class Descs {
         d("Цвет: светокамень", "Цвет рамки светокамня.", "Yorug'tosh ramkasi rangi.", "Glowstone frame color.");
         d("Цвет: рыхлый снег", "Цвет рамки снега.", "Qor ramkasi rangi.", "Snow frame color.");
         d("Радиус рамок", "На каком расстоянии рисовать рамки.", "Ramkalarni qancha masofada chizish.", "How far to draw frames.");
+        d("Показывать сундуки сквозь стены",
+                "Рамки вокруг сундуков, бочек и шалкеров. Рисуются поверх мира, поэтому видны через камень и на любом расстоянии — но только там, где клиент прогрузил чанки.",
+                "Sandiq, bochka va shulkerlar atrofida ramka. Dunyo ustidan chiziladi, shuning uchun tosh orqali va har qanday masofadan ko'rinadi — lekin faqat klient yuklagan chunklarda.",
+                "Boxes around chests, barrels and shulkers. Drawn on top of the world, so they show through stone at any distance — but only in chunks the client has loaded.");
+        d("Кроме сундуков: печи, воронки, раздатчики",
+                "Добавляет к списку печи, воронки, раздатчики, выбрасыватели, варочные стойки, мастер и горшок.",
+                "Ro'yxatga pech, voronka, tarqatgich, chiqargich, qaynatish tagligi, ustaxona va tuvakni qo'shadi.",
+                "Also shows furnaces, hoppers, dispensers, droppers, brewing stands, crafters and decorated pots.");
+        d("Подпись: что за блок и расстояние",
+                "Над рамкой пишется название блока и сколько до него метров. У ближайших шестидесяти.",
+                "Ramka ustida blok nomi va unga qancha metr qolgani yoziladi. Eng yaqin oltmishtasida.",
+                "Writes the block name and the distance above the box, for the nearest sixty.");
+        d("Радиус поиска сундуков",
+                "Дальше этого радиуса сундуки не ищутся. Клиент знает только прогруженные чанки, поэтому очень большой радиус ничего не добавит, кроме нагрузки.",
+                "Bu radiusdan uzoqda sandiqlar izlanmaydi. Klient faqat yuklangan chunklarni biladi, shuning uchun juda katta radius yuklamadan boshqa narsa bermaydi.",
+                "Chests are not searched beyond this radius. The client only knows loaded chunks, so a very large radius adds load and nothing else.");
 
         // ---------- Контур / частицы ----------
         d("Свой контур выбранного блока", "Своя рамка с ореолом вместо ванильного контура.", "Oddiy kontur o'rniga nurli o'z ramkasi.", "Own glowing frame instead of the vanilla outline.");

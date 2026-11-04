@@ -112,11 +112,15 @@ public class NicknameScreen extends Screen {
                 status = Text.literal(I18n.t("Ник: 3–16 символов, латиница, цифры и _"));
                 return;
             }
+            // Сначала запоминаем, потом меняем. Раньше было наоборот, и если подмена сессии
+            // не срабатывала (а на части версий и серверов она не срабатывает), ник не сохранялся
+            // вообще — список оставался пустым. Список и сама смена ника — разные вещи.
+            remember(n);
             if (apply(n)) {
-                remember(n);
                 this.close();
             } else {
-                status = Text.literal(I18n.t("Не удалось сменить ник"));
+                status = Text.literal(I18n.t("Ник сохранён в списке, но сменить сейчас не вышло"));
+                this.clearAndInit();
             }
         }).dimensions(cx - 100, 58, 200, 20).build());
 
@@ -129,11 +133,12 @@ public class NicknameScreen extends Screen {
             final String n = ClickerConfig.nicknames.get(idx);
             int y = 84 + i * 22;
             addDrawableChild(ButtonWidget.builder(Text.literal(n), b -> {
+                remember(n);
                 if (apply(n)) {
-                    remember(n);
                     this.close();
                 } else {
-                    status = Text.literal(I18n.t("Не удалось сменить ник"));
+                    status = Text.literal(I18n.t("Ник сохранён в списке, но сменить сейчас не вышло"));
+                    this.clearAndInit();
                 }
             }).dimensions(cx - 100, y, 170, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("X"), b -> {

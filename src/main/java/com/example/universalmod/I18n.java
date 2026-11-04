@@ -56,6 +56,9 @@ public class I18n {
         a("Прочность ниже порога", "Mustahkamlik chegaradan past", "Durability below threshold");
         a("Инструмент сломан", "Asbob sindi", "Tool broke");
         a("Инструмент сломан, замены нет", "Asbob sindi, almashtirish yo'q", "Tool broke, no replacement");
+        a("Точная установка", "Aniq qo'yish", "Accurate placement");
+        a("Точная установка не встала: миксин не нашёл место вставки. Пришлите logs/latest.log", "Aniq qo'yish ishlamadi: mixin joy topmadi. logs/latest.log faylini yuboring", "Accurate placement did not hook: mixin found no injection point. Send logs/latest.log");
+        a("Обход «ЛКМ и ПКМ одновременно» не встал: миксин не нашёл место вставки. Пришлите logs/latest.log", "«LMB va RMB bir vaqtda» chetlab o'tish ishlamadi: mixin joy topmadi. logs/latest.log faylini yuboring", "The LMB+RMB bypass did not hook: mixin found no injection point. Send logs/latest.log");
         a("Слот сменён, зажатие выключено", "Slot almashtirildi, ushlash o'chirildi", "Slot switched, hold turned off");
         a("Нет целого инструмента", "Butun asbob yo'q", "No intact tool");
         a("Работает, пока включено «Зажать ЛКМ». Когда прочность упадёт ниже порога — выключить зажатие или взять следующий слот хотбара с целым инструментом. При поломке — остановиться или перейти на следующий слот.",
@@ -301,6 +304,14 @@ public class I18n {
         a("Гнев", "G'azab", "Angry");
         a("Души", "Ruhlar", "Souls");
         a("Рамки блоков", "Blok ramkalari", "Block outlines");
+        a("Сундуки сквозь стены", "Devor orqali sandiqlar", "Chest ESP");
+        a("Показывать сундуки сквозь стены", "Devor orqali sandiqlarni ko'rsatish", "Show chests through walls");
+        a("Кроме сундуков: печи, воронки, раздатчики", "Sandiqdan tashqari: pech, voronka, tarqatgich", "Also furnaces, hoppers, dispensers");
+        a("Подпись: что за блок и расстояние", "Yozuv: qanday blok va masofa", "Label: block name and distance");
+        a("Радиус поиска сундуков", "Sandiq izlash radiusi", "Chest search radius");
+        a("Ник сохранён в списке, но сменить сейчас не вышло",
+                "Nik ro'yxatga saqlandi, lekin hozir almashtirib bo'lmadi",
+                "Nickname saved to the list, but changing it right now failed");
         a("Показывать рамки блоков", "Blok ramkalarini ko'rsatish", "Show block outlines");
         a("Подозрительный песок", "Gumon qum", "Suspicious sand");
         a("Подозрительный гравий", "Gumon shag'al", "Suspicious gravel");

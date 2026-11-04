@@ -31,7 +31,9 @@ public class ClickerScreen extends Screen {
             K_FOOD = 13, K_ARMOR = 14, K_MACROS = 15, K_FREELOOK = 16, K_SEARCH = 17, K_ZOOM = 18,
             K_SORT_CH = 19, K_SORT_CV = 20, K_SORT_IH = 21, K_SORT_IV = 22,
             K_REFILL_H = 23, K_REFILL_O = 24, K_INVIS = 25, K_FRAMES = 26, K_TARGET = 27, K_MODS = 28, K_WP_ADD = 29, K_WP_MENU = 30, K_RULER = 31, K_RULER_CLEAR = 32,
-            K_SW_SPEAR = 33, K_SW_MACE = 34, K_SW_ELYTRA = 35, K_HITBOX = 36, K_CRYSTAL = 37, K_TRAP = 38;
+            K_SW_SPEAR = 33, K_SW_MACE = 34, K_SW_ELYTRA = 35, K_HITBOX = 36, K_CRYSTAL = 37, K_TRAP = 38,
+            // Номера совпадают с порядком в UniversalMod.allKeys — там новые клавиши только дописываются в конец
+            K_FARM = 39, K_ACCURATE = 40, K_CHEST_ESP = 41;
 
     private static class Entry {
         int y;
@@ -444,6 +446,16 @@ public class ClickerScreen extends Screen {
                 v -> ClickerConfig.frameSnowColor = v);
         slider("Радиус рамок", " бл.", 4, 32, Math.max(4, Math.min(32, ClickerConfig.frameRadius)),
                 v -> ClickerConfig.frameRadius = v);
+
+        section("Сундуки сквозь стены");
+        toggle("Показывать сундуки сквозь стены", () -> ClickerConfig.chestEsp,
+                () -> ClickerConfig.chestEsp = !ClickerConfig.chestEsp, K_CHEST_ESP);
+        toggle("Кроме сундуков: печи, воронки, раздатчики", () -> ClickerConfig.chestEspAll,
+                () -> ClickerConfig.chestEspAll = !ClickerConfig.chestEspAll, -1);
+        toggle("Подпись: что за блок и расстояние", () -> ClickerConfig.chestEspText,
+                () -> ClickerConfig.chestEspText = !ClickerConfig.chestEspText, -1);
+        slider("Радиус поиска сундуков", " бл.", 16, 256, Math.max(16, Math.min(256, ClickerConfig.chestEspRadius)),
+                v -> ClickerConfig.chestEspRadius = v);
 
         section("Контур блока");
         toggle("Свой контур выбранного блока", () -> ClickerConfig.targetOutline,

@@ -27,6 +27,7 @@ public class ClickerConfig {
     public static boolean waterFast = false;
     public static boolean fastLeftClick = false;
     public static boolean fastRightClick = false;
+    public static boolean accuratePlace = false;   // точная установка: один блок на клетку под прицелом
     public static int fastLeftCount = 4;
     public static int fastRightCount = 4;
     public static boolean shulkerPreview = true;
@@ -72,6 +73,14 @@ public class ClickerConfig {
     public static boolean frameGlowstone = true;
     public static boolean framePowderSnow = true;
     public static int frameRadius = 12;
+    /** Сундуки сквозь стены: рамки рисуются поверх мира, поэтому видны на любом расстоянии. */
+    public static boolean chestEsp = false;
+    /** Радиус поиска сундуков в блоках. Больше прогруженных чанков клиент всё равно не знает. */
+    public static int chestEspRadius = 96;
+    /** Кроме сундуков, бочек и шалкеров показывать печи, воронки, раздатчики и прочее. */
+    public static boolean chestEspAll = false;
+    /** Подпись у рамки: что за блок и сколько до него. */
+    public static boolean chestEspText = true;
     /** Свой контур блока, на который наведён прицел: 0 — светло-серый, 1 — красный, 2 — зелёный, 3 — синий. */
     public static boolean targetOutline = false;
     public static int targetOutlineColor = 0;
@@ -169,6 +178,7 @@ public class ClickerConfig {
         boolean waterFast = false;
         boolean fastLeftClick = false;
         boolean fastRightClick = false;
+        boolean accuratePlace = false;
         int fastLeftCount = 4;
         int fastRightCount = 4;
         boolean shulkerPreview = true;
@@ -213,6 +223,10 @@ public class ClickerConfig {
         boolean frameGlowstone = true;
         boolean framePowderSnow = true;
         int frameRadius = 12;
+        boolean chestEsp = false;
+        int chestEspRadius = 96;
+        boolean chestEspAll = false;
+        boolean chestEspText = true;
         boolean targetOutline = false;
         int targetOutlineColor = 0;
         boolean slotWheel = true;
@@ -334,6 +348,7 @@ public class ClickerConfig {
             waterFast = d.waterFast;
             fastLeftClick = d.fastLeftClick;
             fastRightClick = d.fastRightClick;
+            accuratePlace = d.accuratePlace;
             fastLeftCount = clampFast(d.fastLeftCount);
             fastRightCount = clampFast(d.fastRightCount);
             shulkerPreview = d.shulkerPreview;
@@ -383,6 +398,10 @@ public class ClickerConfig {
             frameGlowstone = d.frameGlowstone;
             framePowderSnow = d.framePowderSnow;
             frameRadius = d.frameRadius <= 0 ? 12 : Math.max(4, Math.min(32, d.frameRadius));
+            chestEsp = d.chestEsp;
+            chestEspRadius = d.chestEspRadius <= 0 ? 96 : Math.max(16, Math.min(256, d.chestEspRadius));
+            chestEspAll = d.chestEspAll;
+            chestEspText = d.chestEspText;
             targetOutline = d.targetOutline;
             slotWheel = d.slotWheel;
             slotDrag = d.slotDrag;
@@ -476,6 +495,7 @@ public class ClickerConfig {
         d.waterFast = waterFast;
         d.fastLeftClick = fastLeftClick;
         d.fastRightClick = fastRightClick;
+        d.accuratePlace = accuratePlace;
         d.fastLeftCount = fastLeftCount;
         d.fastRightCount = fastRightCount;
         d.shulkerPreview = shulkerPreview;
@@ -520,6 +540,10 @@ public class ClickerConfig {
         d.frameGlowstone = frameGlowstone;
         d.framePowderSnow = framePowderSnow;
         d.frameRadius = frameRadius;
+        d.chestEsp = chestEsp;
+        d.chestEspRadius = chestEspRadius;
+        d.chestEspAll = chestEspAll;
+        d.chestEspText = chestEspText;
         d.targetOutline = targetOutline;
         d.slotWheel = slotWheel;
         d.slotDrag = slotDrag;

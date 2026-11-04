@@ -25,6 +25,9 @@ import org.lwjgl.glfw.GLFW;
 
 public class UniversalMod implements ClientModInitializer {
     public static final String MOD_ID = "universal_mod";
+    /** Установлен ли Accurate Block Placement: с ним быстрый ПКМ не должен лезть в установку блоков. */
+    private static final boolean ABP_LOADED =
+            net.fabricmc.loader.api.FabricLoader.getInstance().isModLoaded("accurateblockplacement");
 
     private static KeyBinding toggleLeftKey;
     private static KeyBinding toggleRightKey;
@@ -35,6 +38,8 @@ public class UniversalMod implements ClientModInitializer {
     private static KeyBinding fastBreakKey;
     private static KeyBinding fastLeftClickKey;
     private static KeyBinding fastRightClickKey;
+    private static KeyBinding accuratePlaceKey;
+    private static KeyBinding chestEspKey;
     private static KeyBinding cooldownKey;
     private static KeyBinding shulkerPreviewKey;
     private static KeyBinding shulkerModeKey;
@@ -58,7 +63,11 @@ public class UniversalMod implements ClientModInitializer {
     private static boolean leftHold = false;
     private static boolean rightHold = false;
     // «Фарм руды»: прежние значения быстрых режимов, чтобы вернуть их при выключении
-    private static boolean farmPrevPlace = false, farmPrevBreak = false;
+    private static boolean farmPrevPlace = false, farmPrevBreak = false, farmPrevFastRight = false;
+    private static boolean farmPrevRefillOff = false, farmPrevRefillSlot = false;
+    private static int farmPrevRefillMin = 1;
+    /** Порог автозаполнения второй руки на время фарма: доливаем, когда осталось меньше этого. */
+    private static final int FARM_REFILL_MIN = 20;
     private static double leftAcc = 0;
     private static double rightAcc = 0;
 
@@ -119,6 +128,7 @@ public class UniversalMod implements ClientModInitializer {
         fastBreakKey = register("key.universal_mod.fastbreak", category);
         fastLeftClickKey = register("key.universal_mod.fastleftclick", category);
         fastRightClickKey = register("key.universal_mod.fastrightclick", category);
+        accuratePlaceKey = register("key.universal_mod.accurateplace", category);
         cooldownKey = register("key.universal_mod.cooldown", category);
         shulkerPreviewKey = register("key.universal_mod.shulkerpreview", category);
         shulkerModeKey = register("key.universal_mod.shulkermode", category);
@@ -150,6 +160,7 @@ public class UniversalMod implements ClientModInitializer {
         crystalKey = register("key.universal_mod.autocrystal", category);
         trapKey = register("key.universal_mod.trapuse", category);
         farmKey = register("key.universal_mod.orefarm", category);
+        chestEspKey = register("key.universal_mod.chestesp", category);
 
         allKeys = new KeyBinding[]{
                 toggleLeftKey, toggleRightKey, holdLeftKey, holdRightKey,
@@ -158,9 +169,13 @@ public class UniversalMod implements ClientModInitializer {
                 foodHudKey, armorHudKey, macrosKey, freelookKey, searchKey, zoomKey,
                 sortContH, sortContV, sortInvH, sortInvV,
                 refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, targetOutlineKey, modListKey, wpAddKey, wpMenuKey, rulerKey, rulerClearKey,
-                swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey, farmKey
+                swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey, farmKey,
+                // Новые клавиши дописываются только в конец: в окне настроек клавиши берутся
+                // по номеру в этом массиве, и вставка в середину сдвигает все подписи после неё.
+                accuratePlaceKey, chestEspKey
         };
 
+        ChestEsp.register();
         WorldOutlines.register();
         AutoCrystal.register();
         Ruler.register();
@@ -258,18 +273,72 @@ public class UniversalMod implements ClientModInitializer {
         if (!active) {
             farmPrevPlace = ClickerConfig.fastPlace;
             farmPrevBreak = ClickerConfig.fastBreak;
+            farmPrevFastRight = ClickerConfig.fastRightClick;
+            farmPrevRefillOff = ClickerConfig.refillOffhand;
+            farmPrevRefillSlot = ClickerConfig.refillSlots[9];
+            farmPrevRefillMin = ClickerConfig.refillMin;
             ClickerConfig.fastPlace = true;
             ClickerConfig.fastBreak = true;
+            ClickerConfig.fastRightClick = true;   // несколько установок за тик: блок успевает встать и сломаться
+            // Во время переработки блоки ставятся со второй руки — доливаем её, пока не кончились
+            ClickerConfig.refillOffhand = true;
+            ClickerConfig.refillSlots[9] = true;
+            ClickerConfig.refillMin = FARM_REFILL_MIN;
             setLeftHold(true);
             setRightHold(true);
         } else {
             ClickerConfig.fastPlace = farmPrevPlace;
             ClickerConfig.fastBreak = farmPrevBreak;
+            ClickerConfig.fastRightClick = farmPrevFastRight;
+            ClickerConfig.refillOffhand = farmPrevRefillOff;
+            ClickerConfig.refillSlots[9] = farmPrevRefillSlot;
+            ClickerConfig.refillMin = farmPrevRefillMin;
             setLeftHold(false);
             setRightHold(false);
         }
         ClickerConfig.save();
         msg(client, I18n.t("Фарм руды"), !active);
+    }
+
+    // Самопроверка обхода «ЛКМ и ПКМ одновременно».
+    // У обоих @Redirect стоит require = 0: не нашлось место для вставки — миксин молча не ставится,
+    // и функция просто отсутствует без единой ошибки в логе. Поэтому считаем тики, когда обе кнопки
+    // зажаты, и если за это время ни один обход ни разу не сработал — говорим об этом прямо.
+    private static int bothTicks = 0;
+    private static boolean mixinWarned = false;
+    /** Миксин отмечается здесь, когда обход реально сработал. Держим флаги в обычном классе:
+     *  сам класс миксина в рантайме не существует, обратиться к его полям снаружи нельзя. */
+    public static volatile boolean hookUseAlive = false;
+    public static volatile boolean hookBreakAlive = false;
+
+    private static boolean accurateWarned = false;
+    private static int accurateTicks = 0;
+
+    /** Точная установка живёт во вставке в луч прицела. Если её не встало, режим просто ничего не делает. */
+    private static void checkAccurate(MinecraftClient client) {
+        if (accurateWarned || !ClickerConfig.accuratePlace || client.player == null) return;
+        if (++accurateTicks < 40) return;
+        accurateWarned = true;
+        if (AccuratePlace.hookHits == 0) {
+            client.player.sendMessage(Text.literal(I18n.t(
+                    "Точная установка не встала: миксин не нашёл место вставки. Пришлите logs/latest.log")), false);
+        }
+    }
+
+    private static void checkMixins(MinecraftClient client) {
+        if (mixinWarned || client.player == null) return;
+        boolean attack = client.options.attackKey.isPressed() || leftHold || leftOn;
+        boolean use = client.options.useKey.isPressed() || rightHold || rightOn;
+        if (!(attack && use)) { bothTicks = 0; return; }
+        if (++bothTicks < 40) return;   // две секунды с зажатыми обеими кнопками
+        boolean ok = hookUseAlive || hookBreakAlive;
+        if (!ok) {
+            mixinWarned = true;
+            client.player.sendMessage(Text.literal(I18n.t(
+                    "Обход «ЛКМ и ПКМ одновременно» не встал: миксин не нашёл место вставки. Пришлите logs/latest.log")), false);
+        } else {
+            mixinWarned = true;   // работает — больше не проверяем
+        }
     }
 
     private static void msg(MinecraftClient client, String name, boolean on) {
@@ -400,6 +469,19 @@ public class UniversalMod implements ClientModInitializer {
             ClickerConfig.save();
             msg(client, I18n.t("Быстрый ЛКМ"), ClickerConfig.fastLeftClick);
         }
+        while (accuratePlaceKey.wasPressed()) {
+            ClickerConfig.accuratePlace = !ClickerConfig.accuratePlace;
+            AccuratePlace.reset();
+            AccuratePlace.hookHits = 0;
+            accurateWarned = false;
+            ClickerConfig.save();
+            msg(client, I18n.t("Точная установка"), ClickerConfig.accuratePlace);
+        }
+        while (chestEspKey.wasPressed()) {
+            ClickerConfig.chestEsp = !ClickerConfig.chestEsp;
+            ClickerConfig.save();
+            msg(client, I18n.t("Сундуки сквозь стены"), ClickerConfig.chestEsp);
+        }
         while (fastRightClickKey.wasPressed()) {
             ClickerConfig.fastRightClick = !ClickerConfig.fastRightClick;
             ClickerConfig.save();
@@ -521,6 +603,9 @@ public class UniversalMod implements ClientModInitializer {
         if (leftHold) client.options.attackKey.setPressed(true);
         if (rightHold) client.options.useKey.setPressed(true);
 
+        checkMixins(client);
+        checkAccurate(client);
+
         // Быстрая установка: убираем задержку между установками блоков (в ваниле 4 тика)
         if (ClickerConfig.fastPlace && client.options.useKey.isPressed()) {
             ((MinecraftClientAccessor) client).setItemUseCooldown(0);
@@ -537,16 +622,39 @@ public class UniversalMod implements ClientModInitializer {
             boolean waterBucket = ClickerConfig.waterFast
                     && (client.player.getMainHandStack().isOf(net.minecraft.item.Items.WATER_BUCKET)
                     || client.player.getOffHandStack().isOf(net.minecraft.item.Items.WATER_BUCKET));
-            if ((ClickerConfig.fastRightClick || waterBucket) && client.options.useKey.isPressed()) {
+            // Если установлен Accurate Block Placement, блоки ставит он: он отключает ванильную установку
+            // и ведёт её сам, по одному блоку на каждую новую клетку под прицелом. Наш быстрый ПКМ
+            // в это время вызывал установку напрямую, в обход его логики, — и вся точность пропадала.
+            // Поэтому с блоком в руке уступаем ему; на остальных предметах быстрый ПКМ работает как раньше.
+            boolean abpHandlesIt = (ABP_LOADED || ClickerConfig.accuratePlace)
+                    && client.player.getMainHandStack().getItem() instanceof net.minecraft.item.BlockItem;
+            if ((ClickerConfig.fastRightClick || waterBucket) && client.options.useKey.isPressed() && !abpHandlesIt) {
                 for (int i = 1; i < ClickerConfig.fastRightCount; i++) {
                     acc.setItemUseCooldown(0);
                     acc.invokeDoItemUse();
+                    // Прицел ваниль считает раз в кадр. Повторные установки внутри одного тика брали
+                    // одну и ту же устаревшую точку: первый блок уже встал, а они всё ещё целились
+                    // в старую грань — отсюда блоки «куда попало». Пересчитываем луч после каждой установки.
+                    double reach = client.player.isCreative() ? 5.0 : 4.5;
+                    client.crosshairTarget = client.player.raycast(reach, 1.0F, false);
                 }
                 acc.setItemUseCooldown(0);
             }
             if (ClickerConfig.fastLeftClick && client.options.attackKey.isPressed()) {
-                for (int i = 1; i < ClickerConfig.fastLeftCount; i++) {
-                    acc.invokeDoAttack();
+                // Что было не так: быстрый ПКМ перед каждым кликом сбрасывал задержку, а быстрый ЛКМ — нет.
+                // doAttack() не делает ничего, пока itemUseCooldown больше нуля, а после удара по воздуху
+                // сам ставит attackCooldown = 10 — и следующие удары уходили в пустоту.
+                // Второе: по блоку каждый лишний doAttack() заново начинает разрушение и сбрасывает прогресс,
+                // поэтому по блокам не частим — там своё «Быстрое разрушение».
+                net.minecraft.util.hit.HitResult aim = client.crosshairTarget;
+                boolean onBlock = aim != null && aim.getType() == net.minecraft.util.hit.HitResult.Type.BLOCK;
+                if (!onBlock) {
+                    for (int i = 0; i < ClickerConfig.fastLeftCount; i++) {
+                        acc.setItemUseCooldown(0);
+                        acc.setAttackCooldown(0);
+                        acc.invokeDoAttack();
+                    }
+                    acc.setAttackCooldown(0);
                 }
             }
         }
@@ -567,11 +675,13 @@ public class UniversalMod implements ClientModInitializer {
                     }
                 } else if (h != null && h.getType() == net.minecraft.util.hit.HitResult.Type.BLOCK) {
                     key.setPressed(true);   // блок: копаем, кнопка зажата
-                } else if (ready) {
-                    // воздух: обычный клик, когда оружие готово
-                    KeyBinding.onKeyPressed(InputUtil.fromTranslationKey(key.getBoundKeyTranslationKey()));
-                    key.setPressed(true);
                 } else if (!leftHold) {
+                    // Воздух: НЕ бьём. Раньше здесь был удар «как только оружие готово», и это ломало
+                    // весь смысл режима: промах по воздуху вызывает resetLastAttackedTicks(), то есть
+                    // сбрасывает заряд оружия в ноль. Пока моба нет под прицелом, мод махал в пустоту,
+                    // заряд не успевал накопиться, и первый удар по мобу приходил недозаряженным.
+                    // Вдобавок промах ставит attackCooldown = 10 — это на полсекунды блокирует копание.
+                    // Теперь в пустоту не машем: оружие стоит заряженным и ждёт цель.
                     key.setPressed(false);
                 }
             } else {

@@ -39,5 +39,7 @@
   "key.universal_mod.hitbox": "Nishon hitboksini belgilash",
   "key.universal_mod.autocrystal": "Avto-kristall (yoq/o'ch)",
   "key.universal_mod.trapuse": "Tuzoqda marvarid/xorus (yoq/o'ch)",
-  "key.universal_mod.orefarm": "Ruda fermasi: chap+o'ng tugma, tez qo'yish va sindirish (yoq/o'ch)"
+  "key.universal_mod.orefarm": "Ruda fermasi: LMB+RMB, tez qo‘yish va buzish, ikkinchi qo‘lni avto to‘ldirish (yoqish/o‘chirish)",
+  "key.universal_mod.accurateplace": "Bloklarni aniq qo‘yish (yoqish/o‘chirish)",
+  "key.universal_mod.chestesp": "Devor orqali sandiqlar (yoqish/o‘chirish)"
 }

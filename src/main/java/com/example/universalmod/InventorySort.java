@@ -6,6 +6,7 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.ingame.GenericContainerScreen;
 import net.minecraft.client.gui.screen.ingame.HandledScreen;
+import net.minecraft.client.gui.screen.ingame.InventoryScreen;
 import net.minecraft.client.gui.screen.ingame.ShulkerBoxScreen;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -34,6 +35,10 @@ public class InventorySort {
     /** Индекс первой клавиши сортировки в UniversalMod.keys(). */
     public static final int KEY_BASE = 19;
 
+    /** Размер окна своего инвентаря (стандартная текстура 176×166). */
+    private static final int INV_W = 176;
+    private static final int INV_H = 166;
+
     private static final ArrayDeque<Integer> QUEUE = new ArrayDeque<>();
     private static ScreenHandler taskHandler = null;
     private static final ArrayDeque<Integer> DROPS = new ArrayDeque<>();
@@ -42,6 +47,15 @@ public class InventorySort {
 
     public static void register() {
         ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
+            // Свой инвентарь (E) — не контейнер, поэтому раньше кнопок тут не было вообще.
+            // Переноса и выброса без контейнера не бывает, так что ставим только пару сортировки.
+            if (screen instanceof InventoryScreen) {
+                if (ClickerConfig.sortInvButtons) {
+                    int left = (w - INV_W) / 2, top = (h - INV_H) / 2;
+                    addPair(screen, client, left + INV_W - 32, top + INV_H - 97, false);
+                }
+                return;
+            }
             if (!isContainerScreen(screen) || !(screen instanceof HandledScreen<?> hs)) return;
             int rows = (hs.getScreenHandler().slots.size() - 36) / 9;
             if (rows <= 0) return;
