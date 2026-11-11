@@ -1,5 +1,6 @@
 package com.example.universalmod.mixin;
 
+import com.example.universalmod.Freecam;
 import com.example.universalmod.FreeLook;
 import net.minecraft.client.MinecraftClient;
 import com.example.universalmod.Zoom;
@@ -15,8 +16,9 @@ public abstract class EntityMixin {
     /** Пока включён осмотр, мышь вращает камеру, а не игрока. */
     @Inject(method = "changeLookDirection", at = @At("HEAD"), cancellable = true, require = 0)
     private void universalmod$freelook(double dx, double dy, CallbackInfo ci) {
-        if (FreeLook.active && (Object) this == MinecraftClient.getInstance().player) {
-            FreeLook.turn(dx, dy);
+        if ((Freecam.active || FreeLook.active) && (Object) this == MinecraftClient.getInstance().player) {
+            if (Freecam.active) Freecam.turn(dx, dy);
+            else FreeLook.turn(dx, dy);
             ci.cancel();
         }
     }

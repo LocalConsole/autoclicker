@@ -33,7 +33,7 @@ public class ClickerScreen extends Screen {
             K_REFILL_H = 23, K_REFILL_O = 24, K_INVIS = 25, K_FRAMES = 26, K_TARGET = 27, K_MODS = 28, K_WP_ADD = 29, K_WP_MENU = 30, K_RULER = 31, K_RULER_CLEAR = 32,
             K_SW_SPEAR = 33, K_SW_MACE = 34, K_SW_ELYTRA = 35, K_HITBOX = 36, K_CRYSTAL = 37, K_TRAP = 38,
             // Номера совпадают с порядком в UniversalMod.allKeys — там новые клавиши только дописываются в конец
-            K_FARM = 39, K_ACCURATE = 40, K_CHEST_ESP = 41;
+            K_FARM = 39, K_ACCURATE = 40, K_CHEST_ESP = 41, K_FREECAM = 42;
 
     private static class Entry {
         int y;
@@ -400,6 +400,9 @@ public class ClickerScreen extends Screen {
 
         section("Камера");
         labelRow("Осмотр камеры (зажать)", K_FREELOOK);
+        toggle("Свободная камера", () -> ClickerConfig.freecam, () -> ClickerConfig.freecam = !ClickerConfig.freecam, K_FREECAM);
+        slider("Скорость камеры", " бл/с", 1, 100, Math.max(1, Math.min(100, Math.round(ClickerConfig.freecamSpeed))),
+                v -> ClickerConfig.freecamSpeed = v);
         toggle("Убрать наклон экрана при уроне", () -> ClickerConfig.noHurtTilt,
                 () -> ClickerConfig.noHurtTilt = !ClickerConfig.noHurtTilt, -1);
 

@@ -1,0 +1,12 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.example.universalmod.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "CameraFreecamMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

@@ -41,5 +41,6 @@
   "key.universal_mod.trapuse": "Жемчуг/хорус в ловушке (вкл/выкл)",
   "key.universal_mod.orefarm": "Фарм руды: ЛКМ+ПКМ, быстрая установка и разрушение, автозаполнение второй руки (вкл/выкл)",
   "key.universal_mod.accurateplace": "Точная установка блоков (вкл/выкл)",
-  "key.universal_mod.chestesp": "Сундуки сквозь стены (вкл/выкл)"
+  "key.universal_mod.chestesp": "Сундуки сквозь стены (вкл/выкл)",
+  "key.universal_mod.freecam": "Свободная камера (вкл/выкл)"
 }

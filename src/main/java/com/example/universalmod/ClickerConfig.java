@@ -150,6 +150,9 @@ public class ClickerConfig {
     public static float zoomLevel = 4.0f;
     public static boolean zoomSmooth = true;
     public static boolean zoomSens = true;
+    /** Свободная камера: главный выключатель и скорость полёта (блоков в секунду). */
+    public static boolean freecam = true;
+    public static float freecamSpeed = 12.0f;
     public static int searchRadius = 10;
     public static boolean armorHud = true;
     public static boolean armorShowArmor = true;
@@ -284,6 +287,8 @@ public class ClickerConfig {
         float zoomLevel = 4.0f;
         boolean zoomSmooth = true;
         boolean zoomSens = true;
+        boolean freecam = true;
+        float freecamSpeed = 12.0f;
         int searchRadius = 10;
         boolean armorHud = true;
         boolean armorShowArmor = true;
@@ -461,6 +466,8 @@ public class ClickerConfig {
             zoomLevel = d.zoomLevel < 1.2f ? 4.0f : Math.min(30f, d.zoomLevel);
             zoomSmooth = d.zoomSmooth;
             zoomSens = d.zoomSens;
+            freecam = d.freecam;
+            freecamSpeed = d.freecamSpeed < 1f ? 12.0f : Math.min(100f, d.freecamSpeed);
             searchRadius = d.searchRadius <= 0 ? 10 : Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, d.searchRadius));
             armorHud = d.armorHud;
             armorShowArmor = d.armorShowArmor;
@@ -601,6 +608,8 @@ public class ClickerConfig {
         d.zoomLevel = zoomLevel;
         d.zoomSmooth = zoomSmooth;
         d.zoomSens = zoomSens;
+        d.freecam = freecam;
+        d.freecamSpeed = freecamSpeed;
         d.searchRadius = searchRadius;
         d.armorHud = armorHud;
         d.armorShowArmor = armorShowArmor;

@@ -41,5 +41,6 @@
   "key.universal_mod.trapuse": "Pearl/chorus in a trap (on/off)",
   "key.universal_mod.orefarm": "Ore farm: LMB+RMB, fast place and break, offhand auto-refill (toggle)",
   "key.universal_mod.accurateplace": "Accurate block placement (toggle)",
-  "key.universal_mod.chestesp": "Chest ESP through walls (toggle)"
+  "key.universal_mod.chestesp": "Chest ESP through walls (toggle)",
+  "key.universal_mod.freecam": "Freecam (toggle)"
 }

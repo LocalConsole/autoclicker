@@ -50,6 +50,7 @@ public class UniversalMod implements ClientModInitializer {
     private static KeyBinding freelookKey;
     private static KeyBinding searchKey;
     private static KeyBinding zoomKey;
+    private static KeyBinding freecamKey;
     private static KeyBinding refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, targetOutlineKey, modListKey, wpAddKey, wpMenuKey, rulerKey, rulerClearKey;
     private static KeyBinding sortContH, sortContV, sortInvH, sortInvV;
     private static KeyBinding swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey, farmKey;
@@ -161,6 +162,7 @@ public class UniversalMod implements ClientModInitializer {
         trapKey = register("key.universal_mod.trapuse", category);
         farmKey = register("key.universal_mod.orefarm", category);
         chestEspKey = register("key.universal_mod.chestesp", category);
+        freecamKey = register("key.universal_mod.freecam", category);
 
         allKeys = new KeyBinding[]{
                 toggleLeftKey, toggleRightKey, holdLeftKey, holdRightKey,
@@ -172,7 +174,7 @@ public class UniversalMod implements ClientModInitializer {
                 swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey, farmKey,
                 // Новые клавиши дописываются только в конец: в окне настроек клавиши берутся
                 // по номеру в этом массиве, и вставка в середину сдвигает все подписи после неё.
-                accuratePlaceKey, chestEspKey
+                accuratePlaceKey, chestEspKey, freecamKey
         };
 
         ChestEsp.register();
@@ -193,6 +195,7 @@ public class UniversalMod implements ClientModInitializer {
         TrapUse.register();
         ContainerSearch.register();
         Zoom.register();
+        Freecam.register();
         InventorySort.register();
         MacroManager.register();
         AutoRefill.registerHud();
@@ -254,7 +257,7 @@ public class UniversalMod implements ClientModInitializer {
 
     /** Осмотр: пока зажата клавиша — вид от третьего лица, мышь крутит камеру вокруг игрока. */
     private static void updateFreelook(MinecraftClient client) {
-        boolean want = freelookKey.isPressed() && client.currentScreen == null;
+        boolean want = freelookKey.isPressed() && client.currentScreen == null && !Freecam.active;
         if (want && !FreeLook.active) {
             FreeLook.active = true;
             FreeLook.camYaw = client.player.getYaw();
@@ -410,6 +413,7 @@ public class UniversalMod implements ClientModInitializer {
         applyNoHurtTilt(client);
 
         if (client.player == null) {
+            Freecam.disable(client);
             FreeLook.active = false;
             Zoom.held = false;
             MacroManager.reset();
@@ -431,6 +435,8 @@ public class UniversalMod implements ClientModInitializer {
         InvisibleBlocks.tick(client);
         BlockFrames.tick(client);
         updateFreelook(client);
+        while (freecamKey.wasPressed()) Freecam.toggle(client);
+        Freecam.tick(client);
         Zoom.held = ClickerConfig.zoom && zoomKey.isPressed() && client.currentScreen == null;
         if (zoomWasHeld && !Zoom.held && Zoom.dirty) {
             Zoom.dirty = false;

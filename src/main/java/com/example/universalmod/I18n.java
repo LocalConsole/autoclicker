@@ -174,6 +174,10 @@ public class I18n {
         a("Строка чата скопирована", "Chat qatori nusxalandi", "Chat line copied");
         a("Показ прочности", "Mustahkamlik ko'rsatkichi", "Durability display");
         a("Камера", "Kamera", "Camera");
+        a("Свободная камера", "Erkin kamera", "Freecam");
+        a("Скорость камеры", "Kamera tezligi", "Camera speed");
+        a(" бл/с", " blok/s", " blocks/s");
+        a("Свободная камера не встала: миксин не нашёл место вставки. Пришлите logs/latest.log", "Erkin kamera ishlamadi: mixin joy topmadi. logs/latest.log faylini yuboring", "Freecam did not hook: mixin found no injection point. Send logs/latest.log");
         a("Осмотр камеры (зажать)", "Kamerani aylantirish (bosib turish)", "Free look (hold)");
         a("ВКЛ", "YOQILGAN", "ON");
         a("ВЫКЛ", "O'CHIRILGAN", "OFF");

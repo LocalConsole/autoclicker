@@ -76,6 +76,8 @@ public class Descs {
 
         // ---------- Яркость / Камера ----------
         d("Фулбрайт", "Максимальная яркость везде.", "Hamma joyda maksimal yorqinlik.", "Maximum brightness everywhere.");
+        d("Свободная камера", "Камера отрывается от персонажа и летает сквозь блоки. Клавиша включает и выключает.", "Kamera qahramondan ajralib, bloklar orqali uchadi. Tugma yoqadi va o'chiradi.", "The camera detaches from the player and flies through blocks. The key toggles it.");
+        d("Скорость камеры", "Скорость полёта. Во время полёта меняется колёсиком, Ctrl — ускорение.", "Uchish tezligi. Uchayotganda g'ildirak bilan o'zgaradi, Ctrl — tezlatish.", "Flight speed. Change it with the mouse wheel while flying; Ctrl boosts.");
         d("Осмотр камеры (зажать)", "Крутить камеру, не поворачивая персонажа.", "Qahramonni burmasdan kamerani aylantirish.", "Look around without turning the player.");
         d("Убрать наклон экрана при уроне", "Экран не качается при получении урона.", "Zarba olganda ekran chayqalmaydi.", "Screen does not tilt when you take damage.");
 

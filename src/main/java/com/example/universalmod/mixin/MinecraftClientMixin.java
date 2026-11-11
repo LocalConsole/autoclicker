@@ -1,6 +1,7 @@
 package com.example.universalmod.mixin;
 
 import com.example.universalmod.AccuratePlace;
+import com.example.universalmod.Freecam;
 import com.example.universalmod.UniversalMod;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.entity.LivingEntity;
@@ -45,7 +46,7 @@ public abstract class MinecraftClientMixin {
      */
     @Inject(method = "doItemUse", at = @At("HEAD"), cancellable = true, require = 0)
     private void universalmod$blockVanillaPlace(CallbackInfo ci) {
-        if (AccuratePlace.suppressVanilla && !AccuratePlace.busy) ci.cancel();
+        if (Freecam.active || (AccuratePlace.suppressVanilla && !AccuratePlace.busy)) ci.cancel();
     }
 
     /** ПКМ работает, пока копается блок. */
