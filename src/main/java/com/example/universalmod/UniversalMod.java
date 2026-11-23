@@ -51,6 +51,8 @@ public class UniversalMod implements ClientModInitializer {
     private static KeyBinding searchKey;
     private static KeyBinding zoomKey;
     private static KeyBinding freecamKey;
+    private static KeyBinding schemModeKey, schemSaveKey, schemRotateKey, schemMenuKey, schemBuildKey,
+            trajectoryKey, shieldKey, lavaKey, waterKey;
     private static KeyBinding refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, targetOutlineKey, modListKey, wpAddKey, wpMenuKey, rulerKey, rulerClearKey;
     private static KeyBinding sortContH, sortContV, sortInvH, sortInvV;
     private static KeyBinding swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey, farmKey;
@@ -163,6 +165,15 @@ public class UniversalMod implements ClientModInitializer {
         farmKey = register("key.universal_mod.orefarm", category);
         chestEspKey = register("key.universal_mod.chestesp", category);
         freecamKey = register("key.universal_mod.freecam", category);
+        schemModeKey = register("key.universal_mod.schemmode", category);
+        schemSaveKey = register("key.universal_mod.schemsave", category);
+        schemRotateKey = register("key.universal_mod.schemrotate", category);
+        schemMenuKey = register("key.universal_mod.schemmenu", category);
+        schemBuildKey = register("key.universal_mod.schembuild", category);
+        trajectoryKey = register("key.universal_mod.trajectory", category);
+        shieldKey = register("key.universal_mod.shieldbreak", category);
+        lavaKey = register("key.universal_mod.autolava", category);
+        waterKey = register("key.universal_mod.autowater", category);
 
         allKeys = new KeyBinding[]{
                 toggleLeftKey, toggleRightKey, holdLeftKey, holdRightKey,
@@ -174,7 +185,9 @@ public class UniversalMod implements ClientModInitializer {
                 swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey, farmKey,
                 // Новые клавиши дописываются только в конец: в окне настроек клавиши берутся
                 // по номеру в этом массиве, и вставка в середину сдвигает все подписи после неё.
-                accuratePlaceKey, chestEspKey, freecamKey
+                accuratePlaceKey, chestEspKey, freecamKey,
+                schemModeKey, schemSaveKey, schemRotateKey, schemMenuKey, schemBuildKey,
+                trajectoryKey, shieldKey, lavaKey, waterKey
         };
 
         ChestEsp.register();
@@ -199,6 +212,10 @@ public class UniversalMod implements ClientModInitializer {
         InventorySort.register();
         MacroManager.register();
         AutoRefill.registerHud();
+        SchematicTool.register();
+        Trajectory.register();
+        AutoBucket.register();
+        SchematicScreen.register();
 
         ClientTickEvents.START_CLIENT_TICK.register(UniversalMod::onTick);
 
@@ -421,6 +438,7 @@ public class UniversalMod implements ClientModInitializer {
             HotbarSwap.reset();
             AutoDig.reset();
             AutoCrystal.reset();
+            AutoBucket.reset();
             InvisibleBlocks.reset();
             BlockFrames.reset();
             return;
@@ -432,6 +450,8 @@ public class UniversalMod implements ClientModInitializer {
         HotbarSwap.tick(client);
         AutoDig.tick(client);
         AutoCrystal.tick(client);
+        AutoBucket.tick(client);
+        ShieldBreak.tick(client);
         InvisibleBlocks.tick(client);
         BlockFrames.tick(client);
         updateFreelook(client);
@@ -551,6 +571,31 @@ public class UniversalMod implements ClientModInitializer {
             ClickerConfig.autoCrystal = !ClickerConfig.autoCrystal;
             ClickerConfig.save();
             msg(client, I18n.t("Авто-кристалл"), ClickerConfig.autoCrystal);
+        }
+        while (schemModeKey.wasPressed()) SchematicTool.keyNextMode(client);
+        while (schemSaveKey.wasPressed()) SchematicTool.keySave(client);
+        while (schemRotateKey.wasPressed()) SchematicTool.keyRotate(client);
+        while (schemMenuKey.wasPressed()) SchematicTool.keyMenu(client);
+        while (schemBuildKey.wasPressed()) SchematicTool.keyBuild(client);
+        while (trajectoryKey.wasPressed()) {
+            ClickerConfig.trajectory = !ClickerConfig.trajectory;
+            ClickerConfig.save();
+            msg(client, I18n.t("Траектория снарядов"), ClickerConfig.trajectory);
+        }
+        while (shieldKey.wasPressed()) {
+            ClickerConfig.shieldBreak = !ClickerConfig.shieldBreak;
+            ClickerConfig.save();
+            msg(client, I18n.t("Авто-снос щита"), ClickerConfig.shieldBreak);
+        }
+        while (lavaKey.wasPressed()) {
+            ClickerConfig.autoLava = !ClickerConfig.autoLava;
+            ClickerConfig.save();
+            msg(client, I18n.t("Авто-лава"), ClickerConfig.autoLava);
+        }
+        while (waterKey.wasPressed()) {
+            ClickerConfig.autoWater = !ClickerConfig.autoWater;
+            ClickerConfig.save();
+            msg(client, I18n.t("Ватердроп"), ClickerConfig.autoWater);
         }
         while (farmKey.wasPressed()) {
             toggleOreFarm(client);

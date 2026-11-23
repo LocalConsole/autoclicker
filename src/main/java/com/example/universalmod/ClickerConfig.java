@@ -146,6 +146,17 @@ public class ClickerConfig {
     public static boolean trapUse = false;
     /** Авто-кристалл: после установки обсидиана сверху сам ставится кристалл Энда из хотбара. */
     public static boolean autoCrystal = false;
+    /** Схемы: стрела — инструмент выделения/размещения. */
+    public static boolean schemTool = true;
+    /** Траектория снарядов. */
+    public static boolean trajectory = true;
+    public static boolean trajectoryThirdPerson = false;
+    /** Авто-снос щита топором. */
+    public static boolean shieldBreak = false;
+    public static boolean shieldBreakReturn = true;
+    /** Авто-лава под противника и ватердроп. */
+    public static boolean autoLava = false;
+    public static boolean autoWater = false;
     public static int hitboxColor = 3;
     public static float zoomLevel = 4.0f;
     public static boolean zoomSmooth = true;
@@ -283,6 +294,13 @@ public class ClickerConfig {
         boolean itemCounter = true;
         boolean trapUse = false;
         boolean autoCrystal = false;
+        boolean schemTool = true;
+        boolean trajectory = true;
+        boolean trajectoryThirdPerson = false;
+        boolean shieldBreak = false;
+        boolean shieldBreakReturn = true;
+        boolean autoLava = false;
+        boolean autoWater = false;
         int hitboxColor = 3;
         float zoomLevel = 4.0f;
         boolean zoomSmooth = true;
@@ -462,6 +480,13 @@ public class ClickerConfig {
             itemCounter = d.itemCounter;
             trapUse = d.trapUse;
             autoCrystal = d.autoCrystal;
+            schemTool = d.schemTool;
+            trajectory = d.trajectory;
+            trajectoryThirdPerson = d.trajectoryThirdPerson;
+            shieldBreak = d.shieldBreak;
+            shieldBreakReturn = d.shieldBreakReturn;
+            autoLava = d.autoLava;
+            autoWater = d.autoWater;
             hitboxColor = Math.max(0, Math.min(Waypoints.COLORS.length - 1, d.hitboxColor));
             zoomLevel = d.zoomLevel < 1.2f ? 4.0f : Math.min(30f, d.zoomLevel);
             zoomSmooth = d.zoomSmooth;
@@ -604,6 +629,13 @@ public class ClickerConfig {
         d.itemCounter = itemCounter;
         d.trapUse = trapUse;
         d.autoCrystal = autoCrystal;
+        d.schemTool = schemTool;
+        d.trajectory = trajectory;
+        d.trajectoryThirdPerson = trajectoryThirdPerson;
+        d.shieldBreak = shieldBreak;
+        d.shieldBreakReturn = shieldBreakReturn;
+        d.autoLava = autoLava;
+        d.autoWater = autoWater;
         d.hitboxColor = hitboxColor;
         d.zoomLevel = zoomLevel;
         d.zoomSmooth = zoomSmooth;

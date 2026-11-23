@@ -42,5 +42,14 @@
   "key.universal_mod.orefarm": "Ruda fermasi: LMB+RMB, tez qo‘yish va buzish, ikkinchi qo‘lni avto to‘ldirish (yoqish/o‘chirish)",
   "key.universal_mod.accurateplace": "Bloklarni aniq qo‘yish (yoqish/o‘chirish)",
   "key.universal_mod.chestesp": "Devor orqali sandiqlar (yoqish/o‘chirish)",
-  "key.universal_mod.freecam": "Erkin kamera (yoqish/o‘chirish)"
+  "key.universal_mod.freecam": "Erkin kamera (yoqish/o‘chirish)",
+  "key.universal_mod.schemmode": "Sxema: keyingi rejim",
+  "key.universal_mod.schemsave": "Sxema: belgilanganni saqlash",
+  "key.universal_mod.schemrotate": "Sxema: burish",
+  "key.universal_mod.schemmenu": "Sxema: materiallar va almashtirish",
+  "key.universal_mod.schembuild": "Sxema: qo'yish / avto qurish",
+  "key.universal_mod.trajectory": "Snaryad traektoriyasi (yoq/o'ch)",
+  "key.universal_mod.shieldbreak": "Qalqonni avto sindirish (yoq/o'ch)",
+  "key.universal_mod.autolava": "Avto-lava (yoq/o'ch)",
+  "key.universal_mod.autowater": "Suv tushirish (yoq/o'ch)"
 }

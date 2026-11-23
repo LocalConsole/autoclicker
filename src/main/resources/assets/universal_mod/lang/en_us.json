@@ -42,5 +42,14 @@
   "key.universal_mod.orefarm": "Ore farm: LMB+RMB, fast place and break, offhand auto-refill (toggle)",
   "key.universal_mod.accurateplace": "Accurate block placement (toggle)",
   "key.universal_mod.chestesp": "Chest ESP through walls (toggle)",
-  "key.universal_mod.freecam": "Freecam (toggle)"
+  "key.universal_mod.freecam": "Freecam (toggle)",
+  "key.universal_mod.schemmode": "Schematic: next mode",
+  "key.universal_mod.schemsave": "Schematic: save selection",
+  "key.universal_mod.schemrotate": "Schematic: rotate",
+  "key.universal_mod.schemmenu": "Schematic: materials & replace",
+  "key.universal_mod.schembuild": "Schematic: paste / auto build",
+  "key.universal_mod.trajectory": "Projectile trajectory (on/off)",
+  "key.universal_mod.shieldbreak": "Auto shield break (on/off)",
+  "key.universal_mod.autolava": "Auto lava (on/off)",
+  "key.universal_mod.autowater": "Water drop (on/off)"
 }

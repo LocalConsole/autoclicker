@@ -33,7 +33,9 @@ public class ClickerScreen extends Screen {
             K_REFILL_H = 23, K_REFILL_O = 24, K_INVIS = 25, K_FRAMES = 26, K_TARGET = 27, K_MODS = 28, K_WP_ADD = 29, K_WP_MENU = 30, K_RULER = 31, K_RULER_CLEAR = 32,
             K_SW_SPEAR = 33, K_SW_MACE = 34, K_SW_ELYTRA = 35, K_HITBOX = 36, K_CRYSTAL = 37, K_TRAP = 38,
             // Номера совпадают с порядком в UniversalMod.allKeys — там новые клавиши только дописываются в конец
-            K_FARM = 39, K_ACCURATE = 40, K_CHEST_ESP = 41, K_FREECAM = 42;
+            K_FARM = 39, K_ACCURATE = 40, K_CHEST_ESP = 41, K_FREECAM = 42,
+            K_SCHEM_MODE = 43, K_SCHEM_SAVE = 44, K_SCHEM_ROT = 45, K_SCHEM_MENU = 46, K_SCHEM_BUILD = 47,
+            K_TRAJ = 48, K_SHIELD = 49, K_LAVA = 50, K_WATER = 51;
 
     private static class Entry {
         int y;
@@ -549,6 +551,38 @@ public class ClickerScreen extends Screen {
                 () -> ClickerConfig.hitboxHighlight = !ClickerConfig.hitboxHighlight, K_HITBOX);
         sliderNamed("Цвет хитбокса", Waypoints.COLOR_NAMES, ClickerConfig.hitboxColor,
                 v -> ClickerConfig.hitboxColor = v);
+
+        section("Схемы (как Litematica)");
+        toggle("Стрела — инструмент схем", () -> ClickerConfig.schemTool,
+                () -> ClickerConfig.schemTool = !ClickerConfig.schemTool, -1);
+        note("Стрела в руке, короткий Shift — режим. 1: ПКМ/ЛКМ — точки, Ctrl+Shift — сохранить. 2: ПКМ — поставить схему, ЛКМ — другая, Ctrl+ПКМ — поворот, Ctrl+ЛКМ — убрать. 3 (креатив): Shift+ПКМ — вставить всё. 4: ПКМ — автопостройка из инвентаря.");
+        labelRow("Схема: следующий режим", K_SCHEM_MODE);
+        labelRow("Схема: сохранить выделение", K_SCHEM_SAVE);
+        labelRow("Схема: повернуть", K_SCHEM_ROT);
+        labelRow("Схема: материалы и замена", K_SCHEM_MENU);
+        labelRow("Схема: вставить / автопостройка", K_SCHEM_BUILD);
+
+        section("Траектория снарядов");
+        toggle("Показывать траекторию", () -> ClickerConfig.trajectory,
+                () -> ClickerConfig.trajectory = !ClickerConfig.trajectory, K_TRAJ);
+        toggle("Показывать и от третьего лица", () -> ClickerConfig.trajectoryThirdPerson,
+                () -> ClickerConfig.trajectoryThirdPerson = !ClickerConfig.trajectoryThirdPerson, -1);
+        note("Лук (пока натягиваете), заряженный арбалет, трезубец, эндер-жемчуг, снежок, яйцо, зелья, пузырёк опыта, заряд ветра. Красная линия — попадёте в существо.");
+
+        section("Авто-снос щита");
+        toggle("Сносить щит топором", () -> ClickerConfig.shieldBreak,
+                () -> ClickerConfig.shieldBreak = !ClickerConfig.shieldBreak, K_SHIELD);
+        toggle("Вернуть прошлый слот после удара", () -> ClickerConfig.shieldBreakReturn,
+                () -> ClickerConfig.shieldBreakReturn = !ClickerConfig.shieldBreakReturn, -1);
+        note("Если игрок в прицеле закрылся щитом, а в хотбаре есть топор — топор берётся, бьёт и щит выбивается.");
+
+        section("Вёдра");
+        toggle("Авто-лава под противника", () -> ClickerConfig.autoLava,
+                () -> ClickerConfig.autoLava = !ClickerConfig.autoLava, K_LAVA);
+        note("После удара по противнику, который не горит: 1 тик — ведро лавы в руку, 2 — лава под него, 3 — лава забирается, 4 — прежний слот.");
+        toggle("Ватердроп (вода при падении)", () -> ClickerConfig.autoWater,
+                () -> ClickerConfig.autoWater = !ClickerConfig.autoWater, K_WATER);
+        note("При быстром падении вода ставится под себя перед землёй и забирается после приземления. Ведро воды должно быть в хотбаре.");
 
         section("Авто-кристалл");
         toggle("Кристалл на обсидиан", () -> ClickerConfig.autoCrystal,
