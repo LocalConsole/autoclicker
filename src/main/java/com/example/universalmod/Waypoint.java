@@ -7,6 +7,8 @@ public class Waypoint {
     public int color = 0;
     public String dim = "minecraft:overworld";
     public boolean enabled = true;
+    /** Сервер или одиночный мир, где стоит метка (null — старая метка, ещё без мира). */
+    public String world = null;
 
     public Waypoint() {
     }
@@ -18,5 +20,6 @@ public class Waypoint {
         this.z = z;
         this.color = color;
         this.dim = dim;
+        this.world = Waypoints.worldKey(net.minecraft.client.MinecraftClient.getInstance());
     }
 }

@@ -37,5 +37,15 @@ public abstract class HandledScreenMixin {
         SlotTools.frame(this.focusedSlot);
         com.example.universalmod.ContainerSearch.drawSlotMarks(context, ((HandledScreen<?>) (Object) this).getScreenHandler(), this.x, this.y);
         AutoRefill.drawScreenMarks(context, ((HandledScreen<?>) (Object) this).getScreenHandler(), this.x, this.y);
+        com.example.universalmod.ValueSystem.drawMarks(context, ((HandledScreen<?>) (Object) this).getScreenHandler(), this.x, this.y);
+        com.example.universalmod.ShulkerPreview.draw(context, this.focusedSlot, mouseX, mouseY);
+    }
+
+    /** Клавиши системы ценности: отметить предмет (потом цифра слота) и «забрать ценное». */
+    @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true, require = 0)
+    private void universalmod$valueKeys(net.minecraft.client.input.KeyInput input, CallbackInfoReturnable<Boolean> cir) {
+        if (com.example.universalmod.ValueSystem.onKey((HandledScreen<?>) (Object) this, this.focusedSlot, input)) {
+            cir.setReturnValue(true);
+        }
     }
 }

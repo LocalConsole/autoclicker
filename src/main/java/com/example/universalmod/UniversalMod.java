@@ -52,7 +52,7 @@ public class UniversalMod implements ClientModInitializer {
     private static KeyBinding zoomKey;
     private static KeyBinding freecamKey;
     private static KeyBinding schemModeKey, schemSaveKey, schemRotateKey, schemMenuKey, schemBuildKey,
-            trajectoryKey, shieldKey, lavaKey, waterKey;
+            trajectoryKey, shieldKey, lavaKey, waterKey, schemListKey, valueMarkKey, valueTakeKey, valueMenuKey;
     private static KeyBinding refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, targetOutlineKey, modListKey, wpAddKey, wpMenuKey, rulerKey, rulerClearKey;
     private static KeyBinding sortContH, sortContV, sortInvH, sortInvV;
     private static KeyBinding swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey, farmKey;
@@ -174,6 +174,12 @@ public class UniversalMod implements ClientModInitializer {
         shieldKey = register("key.universal_mod.shieldbreak", category);
         lavaKey = register("key.universal_mod.autolava", category);
         waterKey = register("key.universal_mod.autowater", category);
+        schemListKey = register("key.universal_mod.schemlist", category);
+        valueMarkKey = register("key.universal_mod.valuemark", category);
+        valueTakeKey = register("key.universal_mod.valuetake", category);
+        valueMenuKey = register("key.universal_mod.valuemenu", category);
+        ValueSystem.markKey = valueMarkKey;
+        ValueSystem.takeKey = valueTakeKey;
 
         allKeys = new KeyBinding[]{
                 toggleLeftKey, toggleRightKey, holdLeftKey, holdRightKey,
@@ -187,7 +193,8 @@ public class UniversalMod implements ClientModInitializer {
                 // по номеру в этом массиве, и вставка в середину сдвигает все подписи после неё.
                 accuratePlaceKey, chestEspKey, freecamKey,
                 schemModeKey, schemSaveKey, schemRotateKey, schemMenuKey, schemBuildKey,
-                trajectoryKey, shieldKey, lavaKey, waterKey
+                trajectoryKey, shieldKey, lavaKey, waterKey, schemListKey,
+                valueMarkKey, valueTakeKey, valueMenuKey
         };
 
         ChestEsp.register();
@@ -214,6 +221,7 @@ public class UniversalMod implements ClientModInitializer {
         AutoRefill.registerHud();
         SchematicTool.register();
         Trajectory.register();
+        ValueSystem.register();
         AutoBucket.register();
         SchematicScreen.register();
 
@@ -451,6 +459,7 @@ public class UniversalMod implements ClientModInitializer {
         AutoDig.tick(client);
         AutoCrystal.tick(client);
         AutoBucket.tick(client);
+        ValueSystem.tick(client);
         ShieldBreak.tick(client);
         InvisibleBlocks.tick(client);
         BlockFrames.tick(client);
@@ -577,6 +586,12 @@ public class UniversalMod implements ClientModInitializer {
         while (schemRotateKey.wasPressed()) SchematicTool.keyRotate(client);
         while (schemMenuKey.wasPressed()) SchematicTool.keyMenu(client);
         while (schemBuildKey.wasPressed()) SchematicTool.keyBuild(client);
+        while (valueMenuKey.wasPressed()) client.setScreen(new ValueScreen(client.currentScreen));
+        while (valueTakeKey.wasPressed()) ValueSystem.start(client, true);
+        while (valueMarkKey.wasPressed()) {
+            ValueSystem.markHand(client);
+        }
+        while (schemListKey.wasPressed()) client.setScreen(new SchematicListScreen(client.currentScreen));
         while (trajectoryKey.wasPressed()) {
             ClickerConfig.trajectory = !ClickerConfig.trajectory;
             ClickerConfig.save();

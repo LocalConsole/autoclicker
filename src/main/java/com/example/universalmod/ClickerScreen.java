@@ -35,7 +35,8 @@ public class ClickerScreen extends Screen {
             // Номера совпадают с порядком в UniversalMod.allKeys — там новые клавиши только дописываются в конец
             K_FARM = 39, K_ACCURATE = 40, K_CHEST_ESP = 41, K_FREECAM = 42,
             K_SCHEM_MODE = 43, K_SCHEM_SAVE = 44, K_SCHEM_ROT = 45, K_SCHEM_MENU = 46, K_SCHEM_BUILD = 47,
-            K_TRAJ = 48, K_SHIELD = 49, K_LAVA = 50, K_WATER = 51;
+            K_TRAJ = 48, K_SHIELD = 49, K_LAVA = 50, K_WATER = 51, K_SCHEM_LIST = 52,
+            K_VALUE_MARK = 53, K_VALUE_TAKE = 54, K_VALUE_MENU = 55;
 
     private static class Entry {
         int y;
@@ -49,6 +50,8 @@ public class ClickerScreen extends Screen {
         int grp;
         int gap;
         boolean isHeader;
+        boolean hit;      // найдено поиском само (а не за компанию с разделом)
+        int tabIdx = -1;  // вкладка раздела — показываем при поиске
     }
 
     /** Тексты настроек (название + описание) по группам — для поиска по описанию. */
@@ -81,8 +84,8 @@ public class ClickerScreen extends Screen {
     private boolean prevCollapsed = false;
 
     /** Вкладки (классы настроек): не раскрываются, переключают, какие разделы показаны. Помним, пока запущена игра. */
-    private static final String[] TABS = {"Прочее", "Авто", "ПвП", "Мир", "Инвентарь", "Вид"};
-    private static int tab = 0;
+    private static final String[] TABS = {"Прочее", "Авто", "ПвП", "Мир", "Инвентарь", "Вид", "Схемы"};
+    private static int tab = -1; // берётся из настроек при первом открытии
     private final List<ButtonWidget> tabButtons = new ArrayList<>();
 
     /** Поиск по разделам: при непустом запросе вкладки не учитываются, показываются подходящие разделы. */
@@ -91,10 +94,8 @@ public class ClickerScreen extends Screen {
     private boolean keepFocus = false;
 
     private static boolean sectionMatches(String title, String q) {
-        if (I18n.t(title).toLowerCase(Locale.ROOT).contains(q)) return true;
-        if (title.toLowerCase(Locale.ROOT).contains(q)) return true;
         String d = Descs.get("\u00A7" + title);
-        return d != null && d.toLowerCase(Locale.ROOT).contains(q);
+        return SearchMatcher.matches(I18n.t(title) + " " + title + " " + (d == null ? "" : d), q);
     }
 
     /** К какой вкладке относится раздел. */
@@ -105,6 +106,11 @@ public class ClickerScreen extends Screen {
             case "Быстрые клики":
             case "Блоки":
                 return 1;
+            case "Схемы (как Litematica)":
+                return 6;
+            case "Траектория снарядов":
+            case "Авто-снос щита":
+            case "Вёдра":
             case "Жемчуг и хорус в ловушке":
             case "Прочность брони цели":
             case "Подсветка хитбокса цели":
@@ -120,6 +126,7 @@ public class ClickerScreen extends Screen {
             case "Контур блока":
             case "Поиск в контейнерах":
                 return 3;
+            case "Ценность предметов":
             case "Счётчик предметов":
             case "Автозаполнение":
             case "Перемещение предметов":
@@ -141,6 +148,10 @@ public class ClickerScreen extends Screen {
     public ClickerScreen(Screen parent) {
         super(Text.literal("Universal Mod"));
         this.parent = parent;
+        if (tab < 0) {
+            tab = Math.max(0, Math.min(TABS.length - 1, ClickerConfig.settingsTab));
+            OPEN.addAll(ClickerConfig.settingsOpen);
+        }
     }
 
     private int wd(int keyIdx) {
@@ -162,9 +173,11 @@ public class ClickerScreen extends Screen {
         e.key = title;
         e.header = I18n.t(title);
         e.isHeader = true;
+        e.tabIdx = tabOf(title);
         e.grp = newGroup();
         addText(title);
         addText(I18n.t(title));
+        addText(I18n.t(TABS[tabOf(title)]));
         entries.add(e);
         cursor += 18;
         collapsed = !searching && !OPEN.contains(title);   // найденные по запросу разделы всегда раскрыты
@@ -283,9 +296,9 @@ public class ClickerScreen extends Screen {
     protected void init() {
         entries.clear();
         keyButtons = new ButtonWidget[UniversalMod.keys().length];
-        cw = Math.min(320, this.width - 30);
+        cw = Math.min(380, this.width - 30);
         x0 = (this.width - cw) / 2;
-        viewTop = 50;
+        viewTop = 54;
         viewBottom = this.height - 34;
         tabButtons.clear();
         int tabsW = Math.min(this.width - 20, 440);
@@ -299,20 +312,21 @@ public class ClickerScreen extends Screen {
                             Text.literal(i == tab ? "\u00A7e" + name : name),
                             b -> {
                                 tab = idx;
+                                ClickerConfig.settingsTab = idx;
                                 keepFocus = false;
                                 scroll = 0;
                                 this.clearAndInit();
                             })
-                    .dimensions(bx, 24, bw, 20).build();
+                    .dimensions(bx, 28, bw, 20).build();
             tb.active = i != tab;
             tabButtons.add(tb);
             addDrawableChild(tb);
         }
 
-        int sfW = Math.min(150, this.width / 3);
-        searchField = new TextFieldWidget(this.textRenderer, 8, 4, sfW, 16, Text.literal(""));
+        int sfW = Math.min(300, this.width - 200);
+        searchField = new TextFieldWidget(this.textRenderer, this.width / 2 - sfW / 2 + 8, 6, sfW - 8, 16, Text.literal(""));
         searchField.setMaxLength(48);
-        searchField.setPlaceholder(Text.literal(I18n.t("Поиск настроек")));
+        searchField.setPlaceholder(Text.literal(I18n.t("Поиск: контур, красный, щит, броня...")));
         searchField.setText(searchQuery);
         searchField.setChangedListener(t -> {
             if (t.equals(searchQuery)) return;
@@ -393,6 +407,8 @@ public class ClickerScreen extends Screen {
             b.setMessage(shulkerModeText());
         }).dimensions(x0, 0, wd(K_SHULKER_MODE), 20).build(), K_SHULKER_MODE);
         desc("Шалкер: режим");
+        toggle("Шалкер: сетка с предметами", () -> ClickerConfig.shulkerVisual,
+                () -> ClickerConfig.shulkerVisual = !ClickerConfig.shulkerVisual, -1);
         toggle("Пометка «переименован на наковальне»", () -> ClickerConfig.shulkerRenamedNote,
                 () -> ClickerConfig.shulkerRenamedNote = !ClickerConfig.shulkerRenamedNote, -1);
 
@@ -498,6 +514,8 @@ public class ClickerScreen extends Screen {
         labelRow("Поставить метку здесь", K_WP_ADD);
         toggle("Показывать метки на экране", () -> ClickerConfig.wpShow,
                 () -> ClickerConfig.wpShow = !ClickerConfig.wpShow, -1);
+        toggle("Значки меток прямо в мире", () -> ClickerConfig.wpWorld,
+                () -> ClickerConfig.wpWorld = !ClickerConfig.wpWorld, -1);
         sliderNamed("Цвет новой метки", Waypoints.COLOR_NAMES, ClickerConfig.wpNewColor,
                 v -> ClickerConfig.wpNewColor = v);
         slider("Радиус чанков спавна", " чанк.", 0, 10, Math.max(0, Math.min(10, ClickerConfig.spawnRadius)),
@@ -555,11 +573,23 @@ public class ClickerScreen extends Screen {
         section("Схемы (как Litematica)");
         toggle("Стрела — инструмент схем", () -> ClickerConfig.schemTool,
                 () -> ClickerConfig.schemTool = !ClickerConfig.schemTool, -1);
-        note("Стрела в руке, короткий Shift — режим. 1: ПКМ/ЛКМ — точки, Ctrl+Shift — сохранить. 2: ПКМ — поставить схему, ЛКМ — другая, Ctrl+ПКМ — поворот, Ctrl+ЛКМ — убрать. 3 (креатив): Shift+ПКМ — вставить всё. 4: ПКМ — автопостройка из инвентаря.");
+        note("Предмет-инструмент в руке, Shift+1…5 — режим. 1: ПКМ/ЛКМ — точки, Ctrl+Shift — сохранить. 2: ПКМ — поставить схему, ЛКМ — другая, Ctrl+ПКМ — поворот, Ctrl+ЛКМ — убрать. 3 (креатив): Shift+ПКМ — вставить всё. 4: ПКМ — постройка в досягаемости. 5: ПКМ — бот сам ходит и строит всю схему из инвентаря.");
+        row(ButtonWidget.builder(Text.literal(I18n.t("Инструмент: ") + new net.minecraft.item.ItemStack(SchematicTool.toolItem()).getName().getString()
+                                + I18n.t(" — взять из руки")),
+                        b -> {
+                            SchematicTool.setToolFromHand(this.client);
+                            this.clearAndInit();
+                        })
+                .dimensions(x0, 0, cw, 20).build(), -1);
+        row(ButtonWidget.builder(Text.literal(I18n.t("Список схем...")),
+                        b -> this.client.setScreen(new SchematicListScreen(this)))
+                .dimensions(x0, 0, wd(K_SCHEM_LIST), 20).build(), K_SCHEM_LIST);
+        row(ButtonWidget.builder(Text.literal(I18n.t("Материалы и замена блоков...")),
+                        b -> this.client.setScreen(new SchematicScreen(this)))
+                .dimensions(x0, 0, wd(K_SCHEM_MENU), 20).build(), K_SCHEM_MENU);
         labelRow("Схема: следующий режим", K_SCHEM_MODE);
         labelRow("Схема: сохранить выделение", K_SCHEM_SAVE);
         labelRow("Схема: повернуть", K_SCHEM_ROT);
-        labelRow("Схема: материалы и замена", K_SCHEM_MENU);
         labelRow("Схема: вставить / автопостройка", K_SCHEM_BUILD);
 
         section("Траектория снарядов");
@@ -567,14 +597,12 @@ public class ClickerScreen extends Screen {
                 () -> ClickerConfig.trajectory = !ClickerConfig.trajectory, K_TRAJ);
         toggle("Показывать и от третьего лица", () -> ClickerConfig.trajectoryThirdPerson,
                 () -> ClickerConfig.trajectoryThirdPerson = !ClickerConfig.trajectoryThirdPerson, -1);
-        note("Лук (пока натягиваете), заряженный арбалет, трезубец, эндер-жемчуг, снежок, яйцо, зелья, пузырёк опыта, заряд ветра. Красная линия — попадёте в существо.");
 
         section("Авто-снос щита");
         toggle("Сносить щит топором", () -> ClickerConfig.shieldBreak,
                 () -> ClickerConfig.shieldBreak = !ClickerConfig.shieldBreak, K_SHIELD);
         toggle("Вернуть прошлый слот после удара", () -> ClickerConfig.shieldBreakReturn,
                 () -> ClickerConfig.shieldBreakReturn = !ClickerConfig.shieldBreakReturn, -1);
-        note("Если игрок в прицеле закрылся щитом, а в хотбаре есть топор — топор берётся, бьёт и щит выбивается.");
 
         section("Вёдра");
         toggle("Авто-лава под противника", () -> ClickerConfig.autoLava,
@@ -595,6 +623,18 @@ public class ClickerScreen extends Screen {
         desc("Список модов...");
         toggle("Кнопка «Моды» в меню", () -> ClickerConfig.modsButton,
                 () -> ClickerConfig.modsButton = !ClickerConfig.modsButton, -1);
+
+        section("Ценность предметов");
+        row(ButtonWidget.builder(Text.literal(I18n.t("Настроить ценность...")),
+                        b -> this.client.setScreen(new ValueScreen(this)))
+                .dimensions(x0, 0, wd(K_VALUE_MENU), 20).build(), K_VALUE_MENU);
+        labelRow("Ценность: отметить предмет", K_VALUE_MARK);
+        labelRow("Ценность: забрать ценное", K_VALUE_TAKE);
+        toggle("Забирать ценное при открытии сундука", () -> ClickerConfig.valueAuto,
+                () -> ClickerConfig.valueAuto = !ClickerConfig.valueAuto, -1);
+        toggle("Если не вышло — перенести курсором", () -> ClickerConfig.valueCursor,
+                () -> ClickerConfig.valueCursor = !ClickerConfig.valueCursor, -1);
+        slider("Повторов, если предмет не встал", "", 0, 10, ClickerConfig.valueRetries, v -> ClickerConfig.valueRetries = v);
 
         section("Сортировка");
         toggle("Кнопки сортировки в контейнере", () -> ClickerConfig.sortButtons,
@@ -702,7 +742,10 @@ public class ClickerScreen extends Screen {
     }
 
     /** Поиск по названиям и описаниям настроек: оставляем только подходящие настройки (или целые разделы). */
+    private int found = 0;
+
     private void finishLayout(String q) {
+        found = 0;
         int prevEnd = 0;
         for (Entry e : entries) {
             e.gap = e.y - prevEnd;
@@ -715,17 +758,20 @@ public class ClickerScreen extends Screen {
             while (i < n) {
                 int j = i + 1;
                 while (j < n && !entries.get(j).isHeader) j++;
-                boolean secMatch = groupText.get(entries.get(i).grp).toString().contains(q);
+                boolean secMatch = SearchMatcher.matches(groupText.get(entries.get(i).grp).toString(), q);
                 List<Entry> part = new ArrayList<>();
                 int k = i + 1;
                 while (k < j) {
                     int g = entries.get(k).grp;
                     int m = k;
                     while (m < j && entries.get(m).grp == g) m++;
-                    if (secMatch || groupText.get(g).toString().contains(q)) part.addAll(entries.subList(k, m));
+                    boolean own = SearchMatcher.matches(groupText.get(g).toString(), q);
+                    if (own) for (Entry x : entries.subList(k, m)) x.hit = true;
+                    if (secMatch || own) part.addAll(entries.subList(k, m));
                     k = m;
                 }
                 if (secMatch || !part.isEmpty()) {
+                    found += part.isEmpty() ? 1 : (int) part.stream().filter(x -> x.a != null || x.label != null).count();
                     kept.add(entries.get(i));
                     kept.addAll(part);
                 }
@@ -823,6 +869,8 @@ public class ClickerScreen extends Screen {
                 int ey = viewTop + 4 + e.y - scroll;
                 if (click.y() >= ey && click.y() <= ey + 16) {
                     if (!OPEN.remove(e.key)) OPEN.add(e.key);
+                    ClickerConfig.settingsOpen = new java.util.ArrayList<>(OPEN);
+                    ClickerConfig.save();
                     this.clearAndInit();
                     return true;
                 }
@@ -854,11 +902,23 @@ public class ClickerScreen extends Screen {
             int ey = viewTop + 4 + e.y - scroll;
             if (ey + e.h < viewTop || ey > viewBottom) continue;
             if (e.header != null) {
-                context.drawTextWithShadow(this.textRenderer, Text.literal(e.header), x0, ey + 3, 0xFFFFD866);
-                context.fill(x0, ey + 14, x0 + cw, ey + 15, 0x44FFFFFF);
                 boolean open = OPEN.contains(e.key);
+                boolean hov = mouseX >= x0 && mouseX <= x0 + cw && mouseY >= ey && mouseY <= ey + 16
+                        && mouseY >= viewTop && mouseY <= viewBottom;
+                context.fill(x0 - 2, ey, x0 + cw + 2, ey + 16, hov ? 0x44FFD866 : 0x22FFFFFF);
+                context.fill(x0 - 2, ey + 15, x0 + cw + 2, ey + 16, open ? 0xAAFFD866 : 0x44FFFFFF);
+                net.minecraft.item.Item icon = sectionIcon(e.key);
+                int tx = x0 + 2;
+                if (icon != null) {
+                    context.drawItem(new net.minecraft.item.ItemStack(icon), x0, ey);
+                    tx = x0 + 19;
+                }
+                int chipRoom = !searchQuery.trim().isEmpty() && e.tabIdx >= 0
+                        ? this.textRenderer.getWidth(I18n.t(TABS[e.tabIdx])) + 10 : 0;
+                String head = this.textRenderer.trimToWidth(e.header, x0 + cw - 16 - tx - chipRoom);
+                context.drawTextWithShadow(this.textRenderer, Text.literal(head), tx, ey + 4, 0xFFFFD866);
                 context.drawTextWithShadow(this.textRenderer, Text.literal(open ? "\u25B2" : "\u25BC"),
-                        x0 + cw - 12, ey + 3, 0xFFFFD866);
+                        x0 + cw - 10, ey + 4, 0xFFFFD866);
             }
             if (e.lines != null) {
                 int ly = ey;
@@ -868,10 +928,25 @@ public class ClickerScreen extends Screen {
                 }
             }
             if (e.label != null) {
-                context.drawTextWithShadow(this.textRenderer, Text.literal(e.label), x0, ey + 6, 0xFFFFFFFF);
+                // подпись не должна залезать под кнопку клавиши справа
+                int maxW = cw - (e.b != null ? KW + 8 : 0);
+                context.drawTextWithShadow(this.textRenderer, Text.literal(this.textRenderer.trimToWidth(e.label, maxW)),
+                        x0, ey + 6, 0xFFFFFFFF);
             }
             if (e.a != null) e.a.render(context, mouseX, mouseY, delta);
             if (e.b != null) e.b.render(context, mouseX, mouseY, delta);
+            boolean searching = !searchQuery.trim().isEmpty();
+            if (searching && e.hit && !e.isHeader) {
+                // найденная настройка — жёлтая полоска слева
+                context.fill(x0 - 5, ey, x0 - 3, ey + e.h, 0xFFFFD866);
+            }
+            if (searching && e.isHeader && e.tabIdx >= 0) {
+                String chip = I18n.t(TABS[e.tabIdx]);
+                int cw2 = this.textRenderer.getWidth(chip) + 6;
+                int chx = x0 + cw - 16 - cw2;
+                context.fill(chx, ey + 2, chx + cw2, ey + 13, 0x66000000);
+                context.drawTextWithShadow(this.textRenderer, Text.literal(chip), chx + 3, ey + 4, 0xFFBBBBBB);
+            }
         }
         context.disableScissor();
 
@@ -885,7 +960,72 @@ public class ClickerScreen extends Screen {
             context.fill(right + 2, ty, right + 5, ty + thumb, 0xAAFFFFFF);
         }
 
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 12, 0xFFFFFFFF);
+        int tw = this.textRenderer.getWidth(this.title);
+        if (searchField != null) {
+            int sx = searchField.getX();
+            // значок лупы слева от поля
+            context.drawTextWithShadow(this.textRenderer, Text.literal("\u2315"), sx - 11, 10, 0xFFAAAAAA);
+            if (8 + tw < sx - 16) context.drawTextWithShadow(this.textRenderer, this.title, 8, 10, 0xFFFFD866);
+            String q = searchQuery.trim();
+            if (!q.isEmpty()) {
+                String cnt = found == 0 ? I18n.t("ничего не найдено") : I18n.t("найдено: ") + found;
+                int cx = sx + searchField.getWidth() + 8;
+                if (cx + this.textRenderer.getWidth(cnt) < this.width - 4) {
+                    context.drawTextWithShadow(this.textRenderer, Text.literal(cnt), cx, 10, found == 0 ? 0xFFFF6B6B : 0xFF5BD38A);
+                }
+            }
+        } else {
+            context.drawTextWithShadow(this.textRenderer, this.title, 8, 10, 0xFFFFD866);
+        }
+    }
+
+    /** Значок раздела — чтобы сразу было видно, про что он. */
+    private static net.minecraft.item.Item sectionIcon(String t) {
+        if (t == null) return null;
+        return switch (t) {
+            case "Язык" -> net.minecraft.item.Items.BOOK;
+            case "Аккаунт" -> net.minecraft.item.Items.NAME_TAG;
+            case "Автокликер" -> net.minecraft.item.Items.STONE_BUTTON;
+            case "Авто-копалка (зажать ЛКМ)" -> net.minecraft.item.Items.IRON_PICKAXE;
+            case "Быстрые клики" -> net.minecraft.item.Items.FEATHER;
+            case "Блоки" -> net.minecraft.item.Items.GRASS_BLOCK;
+            case "Шалкеры" -> net.minecraft.item.Items.SHULKER_BOX;
+            case "Яркость" -> net.minecraft.item.Items.TORCH;
+            case "Камера" -> net.minecraft.item.Items.ENDER_EYE;
+            case "Невидимые блоки" -> net.minecraft.item.Items.BARRIER;
+            case "Рамки блоков" -> net.minecraft.item.Items.SUSPICIOUS_SAND;
+            case "Сундуки сквозь стены" -> net.minecraft.item.Items.CHEST;
+            case "Контур блока" -> net.minecraft.item.Items.GLASS;
+            case "Частицы невидимости" -> net.minecraft.item.Items.FERMENTED_SPIDER_EYE;
+            case "Автозаполнение" -> net.minecraft.item.Items.HOPPER;
+            case "Перемещение предметов" -> net.minecraft.item.Items.BUNDLE;
+            case "Метки" -> net.minecraft.item.Items.COMPASS;
+            case "Линейка" -> net.minecraft.item.Items.STICK;
+            case "Смена предмета в хотбаре" -> net.minecraft.item.Items.MACE;
+            case "Жемчуг и хорус в ловушке" -> net.minecraft.item.Items.ENDER_PEARL;
+            case "Прочность брони цели" -> net.minecraft.item.Items.DIAMOND_CHESTPLATE;
+            case "Подсветка хитбокса цели" -> net.minecraft.item.Items.TARGET;
+            case "Схемы (как Litematica)" -> net.minecraft.item.Items.ARROW;
+            case "Траектория снарядов" -> net.minecraft.item.Items.BOW;
+            case "Авто-снос щита" -> net.minecraft.item.Items.SHIELD;
+            case "Вёдра" -> net.minecraft.item.Items.WATER_BUCKET;
+            case "Авто-кристалл" -> net.minecraft.item.Items.END_CRYSTAL;
+            case "Моды" -> net.minecraft.item.Items.CRAFTING_TABLE;
+            case "Ценность предметов" -> net.minecraft.item.Items.NETHER_STAR;
+            case "Сортировка" -> net.minecraft.item.Items.BARREL;
+            case "Зум" -> net.minecraft.item.Items.SPYGLASS;
+            case "Поиск в контейнерах" -> net.minecraft.item.Items.SPYGLASS;
+            case "Чат" -> net.minecraft.item.Items.WRITABLE_BOOK;
+            case "Эффекты и тотемы" -> net.minecraft.item.Items.TOTEM_OF_UNDYING;
+            case "Метка смерти" -> net.minecraft.item.Items.SKELETON_SKULL;
+            case "Предупреждение о прочности" -> net.minecraft.item.Items.ANVIL;
+            case "Координаты" -> net.minecraft.item.Items.MAP;
+            case "Счётчик предметов" -> net.minecraft.item.Items.CLOCK;
+            case "Профили настроек" -> net.minecraft.item.Items.WRITABLE_BOOK;
+            case "Интерфейс" -> net.minecraft.item.Items.PAINTING;
+            case "Управление" -> net.minecraft.item.Items.LEVER;
+            default -> null;
+        };
     }
 
     @Override

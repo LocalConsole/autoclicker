@@ -18,6 +18,8 @@ public class WaypointScreen extends Screen {
     private int fColor;
     private int fDim;
     private int editing = -1;
+    /** Метки этого сервера/мира. */
+    private java.util.List<Waypoint> view = new java.util.ArrayList<>();
     private int first = 0;
     private int listTop, listBottom;
     private TextFieldWidget nameF, xF, yF, zF;
@@ -50,6 +52,7 @@ public class WaypointScreen extends Screen {
 
     @Override
     protected void init() {
+        view = Waypoints.current(MinecraftClient.getInstance());
         int x0 = this.width / 2 - W / 2;
 
         nameF = new TextFieldWidget(this.textRenderer, x0, 28, 200, 20, Text.literal(""));
@@ -94,8 +97,8 @@ public class WaypointScreen extends Screen {
         int rows = visibleRows();
         for (int i = 0; i < rows; i++) {
             int idx = first + i;
-            if (idx >= Waypoints.list.size()) break;
-            Waypoint w = Waypoints.list.get(idx);
+            if (idx >= view.size()) break;
+            Waypoint w = view.get(idx);
             int y = listTop + i * ROW_H + 2;
             addDrawableChild(ButtonWidget.builder(Text.literal(I18n.t(w.enabled ? "Вкл" : "Выкл")), b -> {
                 w.enabled = !w.enabled;
@@ -114,11 +117,11 @@ public class WaypointScreen extends Screen {
                 clearAndInit();
             }).dimensions(x0 + W - 52, y, 34, 20).build());
             addDrawableChild(ButtonWidget.builder(Text.literal("×"), b -> {
-                Waypoints.list.remove(idx);
+                Waypoints.list.remove(w);
                 if (editing == idx) editing = -1;
                 else if (editing > idx) editing--;
                 Waypoints.save();
-                first = Math.max(0, Math.min(first, Waypoints.list.size() - visibleRows()));
+                first = Math.max(0, Math.min(first, view.size() - 1 - visibleRows()));
                 clearAndInit();
             }).dimensions(x0 + W - 16, y, 16, 20).build());
         }
@@ -182,8 +185,8 @@ public class WaypointScreen extends Screen {
         int y = yv != null ? yv : 64;
         String name = fName.trim();
         String dim = Waypoints.DIMS[fDim];
-        if (editing >= 0 && editing < Waypoints.list.size()) {
-            Waypoint w = Waypoints.list.get(editing);
+        if (editing >= 0 && editing < view.size()) {
+            Waypoint w = view.get(editing);
             if (!name.isEmpty()) w.name = name;
             w.x = x;
             w.y = y;
@@ -191,9 +194,9 @@ public class WaypointScreen extends Screen {
             w.color = fColor;
             w.dim = dim;
         } else {
-            if (name.isEmpty()) name = I18n.t("Метка ") + (Waypoints.list.size() + 1);
+            if (name.isEmpty()) name = I18n.t("Метка ") + (view.size() + 1);
             Waypoints.list.add(new Waypoint(name, x, y, z, fColor, dim));
-            first = Math.max(0, Waypoints.list.size() - visibleRows());
+            first = Math.max(0, view.size() + 1 - visibleRows());
         }
         Waypoints.save();
         clearForm();
@@ -206,7 +209,7 @@ public class WaypointScreen extends Screen {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
-        int max = Math.max(0, Waypoints.list.size() - visibleRows());
+        int max = Math.max(0, view.size() - visibleRows());
         int nf = Math.max(0, Math.min(max, first - (int) Math.signum(verticalAmount)));
         if (nf != first) {
             first = nf;
@@ -219,7 +222,13 @@ public class WaypointScreen extends Screen {
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         super.render(context, mouseX, mouseY, delta);
         int x0 = this.width / 2 - W / 2;
-        context.drawCenteredTextWithShadow(this.textRenderer, this.title, this.width / 2, 12, 0xFFFFFFFF);
+        String wk = Waypoints.worldKey(MinecraftClient.getInstance());
+        String head = this.title.getString() + "  \u00A77" + (wk.startsWith("mp:") ? wk.substring(3) : wk.startsWith("sp:") ? wk.substring(3) : "");
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(this.textRenderer.trimToWidth(head, W)), this.width / 2, 12, 0xFFFFFFFF);
+        if (view.isEmpty()) {
+            context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(I18n.t("На этом сервере/в этом мире меток пока нет")),
+                    this.width / 2, listTop + 8, 0xFF888888);
+        }
         if (!msg.isEmpty()) {
             context.drawTextWithShadow(this.textRenderer, Text.literal(msg), x0, 98 - 1, 0xFFFF6666);
         }
@@ -227,8 +236,8 @@ public class WaypointScreen extends Screen {
         int rows = visibleRows();
         for (int i = 0; i < rows; i++) {
             int idx = first + i;
-            if (idx >= Waypoints.list.size()) break;
-            Waypoint w = Waypoints.list.get(idx);
+            if (idx >= view.size()) break;
+            Waypoint w = view.get(idx);
             int y = listTop + i * ROW_H;
             int col = Waypoints.COLORS[Math.max(0, Math.min(Waypoints.COLORS.length - 1, w.color))];
             context.fill(x0, y + 3, x0 + 9, y + 12, 0xFF000000);

@@ -29,6 +29,11 @@ public class ShulkerTooltip {
             if (!ClickerConfig.shulkerPreview) {
                 return;
             }
+            // наглядная сетка рисуется отдельно (ShulkerPreview) — список текстом не дублируем
+            if (ClickerConfig.shulkerVisual && net.minecraft.client.MinecraftClient.getInstance().currentScreen
+                    instanceof net.minecraft.client.gui.screen.ingame.HandledScreen<?>) {
+                return;
+            }
 
             if (ClickerConfig.shulkerSum) {
                 // Режим "сумма": одинаковые предметы считаются вместе, переименованные — отдельными строками

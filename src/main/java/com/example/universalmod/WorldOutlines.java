@@ -74,7 +74,6 @@ public class WorldOutlines {
         if (!ClickerConfig.hitboxHighlight || mc.currentScreen != null) return null;
         HitResult h = mc.crosshairTarget;
         if (!(h instanceof EntityHitResult ehr)) return null;
-        if (!ehr.getEntity().isAttackable()) return null;
         if (mc.player.getAttackCooldownProgress(0.0f) < 1.0f) return null;
         return ehr;
     }

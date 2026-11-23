@@ -28,7 +28,8 @@ public class DeathMark {
 
         BlockPos p = mc.player.getBlockPos();
         String name = I18n.t("Смерть");
-        Waypoints.list.removeIf(w -> NAMES.contains(w.name));
+        String world = Waypoints.worldKey(mc);
+        Waypoints.list.removeIf(w -> NAMES.contains(w.name) && world.equals(w.world));
         Waypoints.list.add(new Waypoint(name, p.getX(), p.getY(), p.getZ(), 0, Waypoints.currentDim(mc)));
         Waypoints.save();
         mc.player.sendMessage(Text.literal(name + ": " + p.getX() + ", " + p.getY() + ", " + p.getZ()), false);

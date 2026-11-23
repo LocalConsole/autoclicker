@@ -173,6 +173,9 @@ public class HotbarSwap {
     private static boolean targetInCrosshair(MinecraftClient client) {
         HitResult h = client.crosshairTarget;
         if (h == null || h.getType() != HitResult.Type.ENTITY || !(h instanceof EntityHitResult ehr)) return false;
+        // заряд ветра в прицеле — не цель: свап и удар по нему только мешают
+        var et = ehr.getEntity().getType();
+        if (et == net.minecraft.entity.EntityType.WIND_CHARGE || et == net.minecraft.entity.EntityType.BREEZE_WIND_CHARGE) return false;
         return ehr.getEntity().isAttackable();
     }
 

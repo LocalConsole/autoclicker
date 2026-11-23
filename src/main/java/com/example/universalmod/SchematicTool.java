@@ -43,6 +43,7 @@ import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.screen.slot.SlotActionType;
+import net.minecraft.registry.Registries;
 import net.minecraft.state.property.Properties;
 import net.minecraft.state.property.Property;
 import net.minecraft.text.Text;
@@ -108,6 +109,8 @@ public class SchematicTool {
     private static final List<BlockState> rWrongStateWant = new ArrayList<>();
     /** Блоки рядом с игроком, которые надо поставить (для постройки). */
     private static final List<Integer> near = new ArrayList<>();
+    /** Все блоки схемы, которые ещё надо поставить (для режима 5). */
+    private static final List<Integer> todo = new ArrayList<>();
     private static int doneCount = 0, totalCount = 0;
 
     // постройка
@@ -153,7 +156,51 @@ public class SchematicTool {
     }
 
     public static boolean holdingTool(MinecraftClient mc) {
-        return ClickerConfig.schemTool && mc.player != null && mc.player.getMainHandStack().isOf(Items.ARROW);
+        if (!ClickerConfig.schemTool || mc.player == null) return false;
+        ItemStack st = mc.player.getMainHandStack();
+        return !st.isEmpty() && st.isOf(toolItem());
+    }
+
+    private static String toolId = null;
+    private static Item toolCache = Items.ARROW;
+
+    /** Предмет-инструмент (по умолчанию стрела), меняется в настройках. */
+    public static Item toolItem() {
+        String id = ClickerConfig.schemToolItem;
+        if (id == null) id = "minecraft:arrow";
+        if (!id.equals(toolId)) {
+            toolId = id;
+            Identifier ident = Identifier.tryParse(id);
+            Item it = ident == null ? Items.AIR : Registries.ITEM.get(ident);
+            toolCache = it == Items.AIR ? Items.ARROW : it;
+        }
+        return toolCache;
+    }
+
+    /** Сделать инструментом предмет из руки. */
+    public static boolean setToolFromHand(MinecraftClient mc) {
+        if (mc.player == null) return false;
+        ItemStack st = mc.player.getMainHandStack();
+        if (st.isEmpty()) return false;
+        ClickerConfig.schemToolItem = Registries.ITEM.getId(st.getItem()).toString();
+        ClickerConfig.save();
+        return true;
+    }
+
+    /** Выбрать схему (из списка). */
+    public static void select(Schematic s) {
+        schem = s;
+        rebuild();
+        saveState();
+    }
+
+    /** Поставить выбранную схему у ног игрока. */
+    public static void placeAt(MinecraftClient mc, BlockPos p) {
+        if (schem == null || mc.player == null) return;
+        anchor = p;
+        dim = Waypoints.currentDim(mc);
+        rebuild();
+        saveState();
     }
 
     // ---------- Клавиши (назначаются в настройках) ----------
@@ -194,7 +241,7 @@ public class SchematicTool {
             say(mc, I18n.t("Сначала поставьте схему (режим 2)"));
             return;
         }
-        if (mode != 4) {
+        if (mode != 4 && mode != 5) {
             mode = 4;
             builderOn = true;
         } else {
@@ -246,14 +293,12 @@ public class SchematicTool {
             mc.options.useKey.setPressed(false);
         }
 
-        // короткое нажатие Shift — следующий режим
-        if (sneak && !sneakWas) {
-            sneakStart = ticks;
-            sneakUsed = false;
+        // Shift + 1…5 — выбрать режим (цифры при этом не переключают слот хотбара)
+        if (holding && sneak) {
+            for (int i = 0; i < 5; i++) {
+                while (mc.options.hotbarKeys[i].wasPressed()) setMode(mc, i + 1);
+            }
         }
-        if (sneak && (attacks > 0 || uses > 0 || ctrl)) sneakUsed = true;
-        if (!sneak && sneakWas && holding && !sneakUsed && ticks - sneakStart <= 6) nextMode(mc);
-        sneakWas = sneak;
 
         // Ctrl+Shift — сохранить выделение
         boolean combo = ctrl && sneak;
@@ -277,20 +322,123 @@ public class SchematicTool {
         }
 
         boolean buildActive = holdingTool(mc) && free && placedHere(mc)
-                && ((mode == 4 && builderOn) || (mode == 3 && creativeBuild && mc.player.isCreative()));
-        if (buildActive) buildTick(mc);
-        else pendingIdx = -1;
+                && (((mode == 4 || mode == 5) && builderOn) || (mode == 3 && creativeBuild && mc.player.isCreative()));
+        if (buildActive) {
+            boolean acted = buildTick(mc);
+            if (mode == 5) botTick(mc, acted);
+            else stopWalking(mc);
+        } else {
+            pendingIdx = -1;
+            stopWalking(mc);
+        }
     }
 
     private static void nextMode(MinecraftClient mc) {
-        mode = mode % 4 + 1;
-        if (mode == 3 && !mc.player.isCreative()) mode = 4;
-        builderOn = mode == 4;
+        int m = mode % 5 + 1;
+        if (m == 3 && !mc.player.isCreative()) m = 4;
+        setMode(mc, m);
+    }
+
+    public static void setMode(MinecraftClient mc, int m) {
+        if (m == 3 && mc.player != null && !mc.player.isCreative()) {
+            say(mc, I18n.t("Режим 3 работает только в креативе"));
+            return;
+        }
+        mode = m;
+        builderOn = m == 4 || m == 5;
         creativeBuild = false;
         pendingIdx = -1;
         lacking.clear();
+        finishedSaid = false;
+        stopWalking(mc);
         say(mc, modeHint());
         saveState();
+    }
+
+    // ---------- Режим 5: бот сам ходит и строит ----------
+
+    private static boolean walking = false;
+    private static int walkTarget = -1;
+    private static long arriveTick = -1;
+    private static Vec3d lastWalkPos = null;
+    private static boolean finishedSaid = false;
+
+    private static void stopWalking(MinecraftClient mc) {
+        if (!walking) return;
+        walking = false;
+        mc.options.forwardKey.setPressed(false);
+        mc.options.jumpKey.setPressed(false);
+    }
+
+    private static void botTick(MinecraftClient mc, boolean acted) {
+        ClientPlayerEntity pl = mc.player;
+        if (acted) {
+            // рядом есть что ставить — стоим и ставим
+            stopWalking(mc);
+            arriveTick = -1;
+            return;
+        }
+        boolean creative = pl.isCreative();
+        PlayerInventory inv = pl.getInventory();
+        if (walkTarget < 0 || walkTarget >= ePos.length
+                || !mc.world.getBlockState(BlockPos.fromLong(ePos[walkTarget])).isReplaceable()) {
+            walkTarget = -1;
+            arriveTick = -1;
+            for (int i : todo) {
+                if (i >= ePos.length) continue;
+                Long t = tried.get(ePos[i]);
+                if (t != null && ticks - t < 200) continue;
+                if (!mc.world.getBlockState(BlockPos.fromLong(ePos[i])).isReplaceable()) continue;
+                Item item = eState[i].getBlock().asItem();
+                if (!creative && findItem(inv, item) < 0) {
+                    lacking.add(item);
+                    continue;
+                }
+                walkTarget = i;
+                lastWalkPos = new Vec3d(pl.getX(), pl.getY(), pl.getZ());
+                break;
+            }
+        }
+        if (walkTarget < 0) {
+            stopWalking(mc);
+            if (!finishedSaid && ticks % 20 == 0) {
+                finishedSaid = true;
+                say(mc, todo.isEmpty() ? I18n.t("Схема построена!") : I18n.t("Больше нечего ставить: не хватает блоков"));
+            }
+            return;
+        }
+        finishedSaid = false;
+        BlockPos g = BlockPos.fromLong(ePos[walkTarget]);
+        Vec3d gp = Vec3d.ofCenter(g);
+        double dx = gp.x - pl.getX(), dz = gp.z - pl.getZ();
+        double hd = Math.sqrt(dx * dx + dz * dz);
+        double reach = pl.getBlockInteractionRange();
+        if (hd < 1.2 || pl.getEyePos().distanceTo(gp) < reach - 1.2) {
+            // пришли, но поставить не получается — пропускаем этот блок
+            stopWalking(mc);
+            if (arriveTick < 0) arriveTick = ticks;
+            if (ticks - arriveTick > 30) {
+                tried.put(ePos[walkTarget], ticks);
+                walkTarget = -1;
+            }
+            return;
+        }
+        arriveTick = -1;
+        pl.setYaw((float) (Math.toDegrees(Math.atan2(dz, dx)) - 90.0));
+        pl.setPitch(15f);
+        mc.options.forwardKey.setPressed(true);
+        boolean up = g.getY() >= pl.getBlockY() + 1 && hd < 2.5;
+        mc.options.jumpKey.setPressed(pl.isOnGround() && (pl.horizontalCollision || up) || pl.isTouchingWater());
+        walking = true;
+        // застряли — берём другую цель
+        if (ticks % 40 == 0) {
+            Vec3d now = new Vec3d(pl.getX(), pl.getY(), pl.getZ());
+            if (lastWalkPos != null && lastWalkPos.distanceTo(now) < 0.6) {
+                tried.put(ePos[walkTarget], ticks);
+                walkTarget = -1;
+            }
+            lastWalkPos = now;
+        }
     }
 
     public static String modeName(int m) {
@@ -298,7 +446,8 @@ public class SchematicTool {
             case 1 -> I18n.t("1: Выделение");
             case 2 -> I18n.t("2: Размещение");
             case 3 -> I18n.t("3: Вставка (креатив)");
-            default -> I18n.t("4: Постройка из инвентаря");
+            case 4 -> I18n.t("4: Постройка рядом");
+            default -> I18n.t("5: Авто-стройка (бот)");
         };
     }
 
@@ -307,7 +456,8 @@ public class SchematicTool {
             case 1 -> modeName(1) + " — " + I18n.t("ПКМ: точка 1, ЛКМ: точка 2, Ctrl+Shift: сохранить");
             case 2 -> modeName(2) + " — " + I18n.t("ПКМ: поставить, ЛКМ: другая схема, Ctrl+ПКМ: поворот, Ctrl+ЛКМ: убрать");
             case 3 -> modeName(3) + " — " + I18n.t("Shift+ПКМ: поставить все блоки");
-            default -> modeName(4) + " — " + I18n.t("ПКМ: вкл/выкл автопостройку");
+            case 4 -> modeName(4) + " — " + I18n.t("ПКМ: вкл/выкл постройку в досягаемости");
+            default -> modeName(5) + " — " + I18n.t("ПКМ: вкл/выкл. Мод сам ходит и строит всю схему из инвентаря");
         };
     }
 
@@ -487,6 +637,8 @@ public class SchematicTool {
         rWrongWant.clear();
         rWrongStateWant.clear();
         near.clear();
+        todo.clear();
+        segs = new ArrayList<>();
         if (schem == null || anchor == null) {
             ePos = new long[0];
             eState = new BlockState[0];
@@ -537,6 +689,7 @@ public class SchematicTool {
         rWrongWant.clear();
         rWrongStateWant.clear();
         near.clear();
+        todo.clear();
         if (!placedHere(mc)) return;
         ClientWorld w = mc.world;
         Vec3d eye = mc.player.getEyePos();
@@ -559,12 +712,20 @@ public class SchematicTool {
             } else if (have.isReplaceable()) {
                 if (visible) { rMissing.add(p); rMissingState.add(want); shown++; }
                 if (d2 < reach * reach && !secondaryPart(want)) near.add(i);
+                if (!secondaryPart(want) && todo.size() < 50000) todo.add(i);
             } else {
                 if (visible) { rWrong.add(p); rWrongWant.add(want); shown++; }
             }
         }
         doneCount = done;
+        buildSegments(mc);
         // снизу вверх, потом ближние
+        java.util.Comparator<Integer> byYDist = (a, b) -> {
+            BlockPos pa = BlockPos.fromLong(ePos[a]), pb = BlockPos.fromLong(ePos[b]);
+            if (pa.getY() != pb.getY()) return Integer.compare(pa.getY(), pb.getY());
+            return Double.compare(eye.squaredDistanceTo(pa.toCenterPos()), eye.squaredDistanceTo(pb.toCenterPos()));
+        };
+        todo.sort(byYDist);
         near.sort((a, b) -> {
             BlockPos pa = BlockPos.fromLong(ePos[a]), pb = BlockPos.fromLong(ePos[b]);
             if (pa.getY() != pb.getY()) return Integer.compare(pa.getY(), pb.getY());
@@ -618,9 +779,10 @@ public class SchematicTool {
 
     // ---------- Постройка ----------
 
-    private static void buildTick(MinecraftClient mc) {
+    /** @return true — что-то ставится/ждём; false — рядом ставить нечего. */
+    private static boolean buildTick(MinecraftClient mc) {
         ClientPlayerEntity pl = mc.player;
-        if (pl.currentScreenHandler != pl.playerScreenHandler) return;
+        if (pl.currentScreenHandler != pl.playerScreenHandler) return true;
         PlayerInventory inv = pl.getInventory();
         int toolSlot = inv.getSelectedSlot();
 
@@ -638,11 +800,11 @@ public class SchematicTool {
             }
             cooldown = 1;
             if (tried.size() > 20000) tried.clear();
-            return;
+            return true;
         }
         if (cooldown > 0) {
             cooldown--;
-            return;
+            return true;
         }
 
         boolean creative = pl.isCreative();
@@ -697,8 +859,9 @@ public class SchematicTool {
             // наводим камеру; поворот уйдёт на сервер в этом тике, блок ставится в следующем
             pl.setYaw(sol.yaw);
             pl.setPitch(sol.pitch);
-            return;
+            return true;
         }
+        return false;
     }
 
     private static int findItem(PlayerInventory inv, Item item) {
@@ -821,11 +984,11 @@ public class SchematicTool {
             int ex = rot % 2 == 0 ? schem.sx : schem.sz, ez = rot % 2 == 0 ? schem.sz : schem.sx;
             box(m, vc, new Box(anchor.getX(), anchor.getY(), anchor.getZ(),
                     anchor.getX() + ex, anchor.getY() + schem.sy, anchor.getZ() + ez), cp, 0xFFFFFFFF, width);
-            for (int i = 0; i < rMissing.size(); i++) {
-                shape(m, vc, mc, rMissing.get(i), rMissingState.get(i), cp, 0xFF4FC3F7, width);
+            // контуры точно по форме блоков; общая грань соседних блоков рисуется один раз
+            float thin = Math.max(1.5f, width * 0.75f);
+            for (Seg g : segs) {
+                VertexRendering.drawOutline(m, vc, g.shape, -cp.x, -cp.y, -cp.z, g.color, thin);
             }
-            for (BlockPos p : rWrongState) box(m, vc, new Box(p).contract(0.03), cp, 0xFFFFA000, width);
-            for (BlockPos p : rWrong) box(m, vc, new Box(p).contract(0.03), cp, 0xFFFF3030, width);
 
             // Сами блоки: уменьшенная копия нужного блока внутри клетки (как голограмма).
             // Рисуем строго после всех линий: запрос другого слоя закрывает буфер линий.
@@ -866,6 +1029,92 @@ public class SchematicTool {
         }
     }
 
+    // ---------- Контуры без двойных линий ----------
+
+    private record Seg(VoxelShape shape, int color) { }
+
+    private static List<Seg> segs = new ArrayList<>();
+    private static final double NEEDLE = 0.0008;
+
+    /**
+     * Собираем рёбра контуров всех подсвеченных блоков, убираем повторы (у соседних блоков общие рёбра)
+     * и склеиваем рёбра на одной прямой в один отрезок. Сетка между блоками остаётся, но каждая линия —
+     * одна, а не две. Пересчитывается раз в 10 тиков, не каждый кадр.
+     */
+    private static void buildSegments(MinecraftClient mc) {
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        List<Seg> out = new ArrayList<>();
+        // важнее — первым: красный (чужой блок), оранжевый (не так повёрнут), голубой (не поставлен)
+        addEdges(mc, rWrong, rWrongWant, 0xFFFF3030, seen, out);
+        addEdges(mc, rWrongState, rWrongStateWant, 0xFFFFA000, seen, out);
+        addEdges(mc, rMissing, rMissingState, 0xFF4FC3F7, seen, out);
+        segs = out;
+    }
+
+    private static void addEdges(MinecraftClient mc, List<BlockPos> ps, List<BlockState> states, int color,
+                                 java.util.Set<String> seen, List<Seg> out) {
+        // ключ прямой (ось + две постоянные координаты) -> отрезки вдоль неё (в 1/16 блока)
+        Map<String, List<long[]>> lines = new HashMap<>();
+        for (int i = 0; i < ps.size(); i++) {
+            BlockPos p = ps.get(i);
+            BlockState st = i < states.size() ? states.get(i) : null;
+            VoxelShape sh;
+            try {
+                sh = st == null ? VoxelShapes.fullCube() : st.getOutlineShape(mc.world, p);
+            } catch (Throwable t) {
+                sh = VoxelShapes.fullCube();
+            }
+            if (sh.isEmpty()) sh = VoxelShapes.cuboid(0.3, 0.0, 0.3, 0.7, 0.4, 0.7);
+            final int bx = p.getX(), by = p.getY(), bz = p.getZ();
+            sh.forEachEdge((x1, y1, z1, x2, y2, z2) -> {
+                long ax = q(bx + x1), ay = q(by + y1), az = q(bz + z1);
+                long cx = q(bx + x2), cy = q(by + y2), cz = q(bz + z2);
+                int axis;
+                long a, b, s0, s1;
+                if (ax != cx) { axis = 0; a = ay; b = az; s0 = Math.min(ax, cx); s1 = Math.max(ax, cx); }
+                else if (ay != cy) { axis = 1; a = ax; b = az; s0 = Math.min(ay, cy); s1 = Math.max(ay, cy); }
+                else if (az != cz) { axis = 2; a = ax; b = ay; s0 = Math.min(az, cz); s1 = Math.max(az, cz); }
+                else return;
+                String key = axis + ":" + a + ":" + b;
+                if (!seen.add(key + ":" + s0 + ":" + s1)) return; // такое ребро уже есть
+                lines.computeIfAbsent(key, k -> new ArrayList<>()).add(new long[]{s0, s1});
+            });
+        }
+        for (Map.Entry<String, List<long[]>> e : lines.entrySet()) {
+            String[] k = e.getKey().split(":");
+            int axis = Integer.parseInt(k[0]);
+            double a = Long.parseLong(k[1]) / 16.0, b = Long.parseLong(k[2]) / 16.0;
+            List<long[]> iv = e.getValue();
+            iv.sort((u, v) -> Long.compare(u[0], v[0]));
+            long cs = iv.get(0)[0], ce = iv.get(0)[1];
+            for (int i = 1; i <= iv.size(); i++) {
+                if (i < iv.size() && iv.get(i)[0] <= ce) {
+                    ce = Math.max(ce, iv.get(i)[1]);
+                    continue;
+                }
+                out.add(new Seg(needle(axis, a, b, cs / 16.0, ce / 16.0), color));
+                if (i < iv.size()) {
+                    cs = iv.get(i)[0];
+                    ce = iv.get(i)[1];
+                }
+            }
+        }
+    }
+
+    private static long q(double v) {
+        return Math.round(v * 16.0);
+    }
+
+    /** Очень тонкий брусок вдоль оси — рисуется как одна линия. */
+    private static VoxelShape needle(int axis, double a, double b, double s0, double s1) {
+        double e = NEEDLE;
+        return switch (axis) {
+            case 0 -> VoxelShapes.cuboid(s0, a - e, b - e, s1, a + e, b + e);
+            case 1 -> VoxelShapes.cuboid(a - e, s0, b - e, a + e, s1, b + e);
+            default -> VoxelShapes.cuboid(a - e, b - e, s0, a + e, b + e, s1);
+        };
+    }
+
     private static void box(MatrixStack m, VertexConsumer vc, Box b, Vec3d cp, int argb, float width) {
         VertexRendering.drawOutline(m, vc, VoxelShapes.cuboid(b), -cp.x, -cp.y, -cp.z, argb, width);
     }
@@ -882,7 +1131,7 @@ public class SchematicTool {
         VertexRendering.drawOutline(m, vc, s, p.getX() - cp.x, p.getY() - cp.y, p.getZ() - cp.z, argb, width);
     }
 
-    private static final int[] MODE_COLORS = {0xFFF2C94C, 0xFF56A8F5, 0xFFB57BEE, 0xFF5BD38A};
+    private static final int[] MODE_COLORS = {0xFFF2C94C, 0xFF56A8F5, 0xFFB57BEE, 0xFF5BD38A, 0xFFFF8A4C};
 
     private static void renderHud(DrawContext ctx) {
         MinecraftClient mc = MinecraftClient.getInstance();
@@ -891,7 +1140,7 @@ public class SchematicTool {
         int accent = MODE_COLORS[mode - 1];
         int w = 240;
         int x = (ctx.getScaledWindowWidth() - w) / 2;
-        int y = 4;
+        int y = 4 + Waypoints.hudHeight(); // под полоской меток, чтобы не налезать
 
         // строки содержимого
         List<String> info = new ArrayList<>();
@@ -905,11 +1154,11 @@ public class SchematicTool {
         } else if (mode == 3) {
             hint = I18n.t("Shift+ПКМ — поставить всё   ЛКМ — стоп");
         } else {
-            hint = I18n.t("ПКМ — ") + (builderOn ? I18n.t("пауза") : I18n.t("строить"));
+            hint = I18n.t("ПКМ — ") + (builderOn ? I18n.t("пауза") : I18n.t("строить")) + I18n.t("   Shift+1…5 — режим");
         }
         boolean showSchem = mode != 1;
-        boolean showLack = mode == 4 && !lacking.isEmpty();
-        boolean showPlacing = mode == 4 && builderOn && placingItem != null;
+        boolean showLack = (mode == 4 || mode == 5) && !lacking.isEmpty();
+        boolean showPlacing = (mode == 4 || mode == 5) && builderOn && placingItem != null;
         int h = 18 + info.size() * 11 + (showSchem ? 24 : 0) + (showLack || showPlacing ? 22 : 0) + 12;
 
         // фон с рамкой и цветной полосой режима
@@ -917,12 +1166,12 @@ public class SchematicTool {
         ctx.fill(x, y, x + w, y + h, 0xD01C2128);
         ctx.fill(x, y, x + w, y + 14, (accent & 0x00FFFFFF) | 0x55000000);
         ctx.fill(x, y + 14, x + w, y + 15, accent);
-        ctx.drawItem(new ItemStack(Items.ARROW), x + 1, y - 1);
+        ctx.drawItem(new ItemStack(toolItem()), x + 1, y - 1);
         ctx.drawTextWithShadow(tr, Text.literal(modeName(mode)), x + 19, y + 3, 0xFFFFFFFF);
 
         // значки режимов 1-4 справа
-        for (int i = 1; i <= 4; i++) {
-            int bx = x + w - 4 - (5 - i) * 13;
+        for (int i = 1; i <= 5; i++) {
+            int bx = x + w - 4 - (6 - i) * 13;
             boolean cur = i == mode;
             boolean off = i == 3 && !mc.player.isCreative();
             ctx.fill(bx, y + 2, bx + 11, y + 12, cur ? MODE_COLORS[i - 1] : 0x66000000);
@@ -1016,7 +1265,7 @@ public class SchematicTool {
         try (Reader r = Files.newBufferedReader(STATE_FILE)) {
             Saved s = GSON.fromJson(r, Saved.class);
             if (s == null) return;
-            mode = Math.max(1, Math.min(4, s.mode));
+            mode = Math.max(1, Math.min(5, s.mode));
             rot = Math.floorMod(s.rot, 4);
             dim = s.dim == null ? "" : s.dim;
             if (s.file != null) schem = Schematic.load(Schematic.DIR.resolve(s.file + Schematic.EXT));
