@@ -92,36 +92,22 @@ public class Trajectory {
         Vec3d pv = p.getVelocity();
         vel = vel.add(pv.x, p.isOnGround() ? 0.0 : pv.y, pv.z);
 
-        // полёт по тикам
+        // полёт по тикам: сначала путь до блока, потом ОДИН запрос существ на всю траекторию
+        // (раньше — запрос на каждый тик полёта, до 300 запросов за кадр)
         List<Vec3d> pts = new ArrayList<>();
         pts.add(pos);
-        Entity hitEntity = null;
         Vec3d end = null;
+        double minX = pos.x, minY = pos.y, minZ = pos.z, maxX = pos.x, maxY = pos.y, maxZ = pos.z;
         for (int i = 0; i < MAX_STEPS; i++) {
             Vec3d next = pos.add(vel);
             BlockHitResult bh = mc.world.raycast(new RaycastContext(pos, next,
                     RaycastContext.ShapeType.COLLIDER, RaycastContext.FluidHandling.NONE, p));
-            if (bh.getType() != HitResult.Type.MISS) next = bh.getPos();
-            // существа на отрезке
-            Box sweep = new Box(pos, next).expand(1.0);
-            double best = Double.MAX_VALUE;
-            for (Entity e : mc.world.getOtherEntities(p, sweep, e -> e.isAlive() && e.canHit() && !e.isSpectator())) {
-                var r = e.getBoundingBox().expand(0.3).raycast(pos, next);
-                if (r.isPresent()) {
-                    double d = pos.squaredDistanceTo(r.get());
-                    if (d < best) {
-                        best = d;
-                        hitEntity = e;
-                        end = r.get();
-                    }
-                }
-            }
-            if (hitEntity != null) {
-                pts.add(end);
-                break;
-            }
+            boolean hit = bh.getType() != HitResult.Type.MISS;
+            if (hit) next = bh.getPos();
             pts.add(next);
-            if (bh.getType() != HitResult.Type.MISS) {
+            minX = Math.min(minX, next.x); minY = Math.min(minY, next.y); minZ = Math.min(minZ, next.z);
+            maxX = Math.max(maxX, next.x); maxY = Math.max(maxY, next.y); maxZ = Math.max(maxZ, next.z);
+            if (hit) {
                 end = next;
                 break;
             }
@@ -129,6 +115,30 @@ public class Trajectory {
             boolean water = !mc.world.getFluidState(net.minecraft.util.math.BlockPos.ofFloored(pos)).isEmpty();
             vel = vel.multiply(water ? 0.6 : k.drag()).add(0, -k.gravity(), 0);
             if (pos.y < mc.world.getBottomY() - 64) break;
+        }
+        Entity hitEntity = null;
+        Box all = new Box(minX, minY, minZ, maxX, maxY, maxZ).expand(1.0);
+        List<Entity> cands = mc.world.getOtherEntities(p, all, e -> e.isAlive() && e.canHit() && !e.isSpectator());
+        if (!cands.isEmpty()) {
+            for (int i = 0; i + 1 < pts.size() && hitEntity == null; i++) {
+                Vec3d a = pts.get(i), b = pts.get(i + 1);
+                double best = Double.MAX_VALUE;
+                for (Entity e : cands) {
+                    var r = e.getBoundingBox().expand(0.3).raycast(a, b);
+                    if (r.isPresent()) {
+                        double d = a.squaredDistanceTo(r.get());
+                        if (d < best) {
+                            best = d;
+                            hitEntity = e;
+                            end = r.get();
+                        }
+                    }
+                }
+                if (hitEntity != null) {
+                    while (pts.size() > i + 1) pts.remove(pts.size() - 1);
+                    pts.add(end);
+                }
+            }
         }
 
         int col = hitEntity != null ? 0xFFFF4444 : 0xFFFFFFFF;

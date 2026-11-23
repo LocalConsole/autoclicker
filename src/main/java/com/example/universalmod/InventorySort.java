@@ -46,77 +46,11 @@ public class InventorySort {
     private static final boolean[] wasDown = new boolean[4];
 
     public static void register() {
-        ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
-            // Свой инвентарь (E) — не контейнер, поэтому раньше кнопок тут не было вообще.
-            // Переноса и выброса без контейнера не бывает, так что ставим только пару сортировки.
-            if (screen instanceof InventoryScreen) {
-                if (ClickerConfig.sortInvButtons) {
-                    int left = (w - INV_W) / 2, top = (h - INV_H) / 2;
-                    addPair(screen, client, left + INV_W - 32, top + INV_H - 97, false);
-                }
-                return;
-            }
-            if (!isContainerScreen(screen) || !(screen instanceof HandledScreen<?> hs)) return;
-            int rows = (hs.getScreenHandler().slots.size() - 36) / 9;
-            if (rows <= 0) return;
-            int bh = 114 + rows * 18;
-            int left = (w - 176) / 2;
-            int top = (h - bh) / 2;
-            if (ClickerConfig.sortButtons) {
-                addPair(screen, client, left + 176 - 32, top + 4, true);
-                addMovePair(screen, client, left + 108, top + 4, true);
-                addDropButton(screen, client, left + 90, top + 4);
-            }
-            if (ClickerConfig.sortInvButtons) {
-                addPair(screen, client, left + 176 - 32, top + bh - 97, false);
-                addMovePair(screen, client, left + 108, top + bh - 97, false);
-            }
-        });
-    }
-
-    private static void addPair(Screen screen, MinecraftClient client, int x, int y, boolean container) {
-        Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("↓"),
-                        b -> start(client, container, false))
-                .dimensions(x, y, 12, 12)
-                .tooltip(Tooltip.of(Text.literal(I18n.t("Сортировать по вертикали"))))
-                .build());
-        Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("→"),
-                        b -> start(client, container, true))
-                .dimensions(x + 14, y, 12, 12)
-                .tooltip(Tooltip.of(Text.literal(I18n.t("Сортировать по горизонтали"))))
-                .build());
-    }
-
-    /** Две кнопки переноса: «всё» и «только как предмет в руке». fromContainer: из контейнера в инвентарь, иначе наоборот. */
-    private static void addMovePair(Screen screen, MinecraftClient client, int x, int y, boolean fromContainer) {
-        String arrow = fromContainer ? "▼" : "▲";
-        Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal(arrow),
-                        b -> startMove(client, fromContainer, false))
-                .dimensions(x, y, 16, 12)
-                .tooltip(Tooltip.of(Text.literal(I18n.t(fromContainer
-                        ? "Забрать всё из контейнера в инвентарь"
-                        : "Положить всё из инвентаря в контейнер"))))
-                .build());
-        Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal(arrow + "="),
-                        b -> startMove(client, fromContainer, true))
-                .dimensions(x + 18, y, 16, 12)
-                .tooltip(Tooltip.of(Text.literal(I18n.t(fromContainer
-                        ? "Забрать все такие же предметы, как в руке"
-                        : "Положить все такие же предметы, как в руке"))))
-                .build());
-    }
-
-    /** Выбросить предметы из контейнера на землю. С предметом в руке — только такие же. */
-    private static void addDropButton(Screen screen, MinecraftClient client, int x, int y) {
-        Screens.getButtons(screen).add(ButtonWidget.builder(Text.literal("\u2715"),
-                        b -> startDrop(client))
-                .dimensions(x, y, 16, 12)
-                .tooltip(Tooltip.of(Text.literal(I18n.t("Выбросить всё из контейнера (с предметом в руке — только такие же)"))))
-                .build());
+        ContainerButtons.register();
     }
 
     public static void startDrop(MinecraftClient client) {
-        if (client.player == null || !QUEUE.isEmpty() || !DROPS.isEmpty()) return;
+        if (client.player == null || busy()) return;
         if (!isContainerScreen(client.currentScreen)) return;
         ScreenHandler handler = client.player.currentScreenHandler;
         if (handler == null || !handler.getCursorStack().isEmpty()) return;
@@ -134,7 +68,7 @@ public class InventorySort {
         if (!DROPS.isEmpty()) dropHandler = handler;
     }
 
-    private static boolean isContainerScreen(Screen s) {
+    public static boolean isContainerScreen(Screen s) {
         return s instanceof GenericContainerScreen || s instanceof ShulkerBoxScreen;
     }
 
@@ -157,6 +91,15 @@ public class InventorySort {
                 }
             }
         }
+        if (sortHandler != null) {
+            if (client.player.currentScreenHandler != sortHandler) {
+                stopSort(client, null);
+            } else {
+                boolean more = true;
+                for (int i = 0; i < Math.max(1, ClickerConfig.sortSpeed / 2) && more; i++) more = sortStep(client);
+                if (!more) stopSort(client, I18n.t("Отсортировано"));
+            }
+        }
         if (!QUEUE.isEmpty()) {
             if (taskHandler == null || client.player.currentScreenHandler != taskHandler) {
                 QUEUE.clear();
@@ -165,6 +108,7 @@ public class InventorySort {
                     client.interactionManager.clickSlot(taskHandler.syncId, QUEUE.poll(), 0,
                             SlotActionType.PICKUP, client.player);
                 }
+                if (QUEUE.isEmpty()) putBackCursor(client, taskHandler, null);
             }
         }
 
@@ -188,9 +132,24 @@ public class InventorySort {
 
     // ---------- Запуск ----------
 
+    // ---------- Сортировка «по шагам» ----------
+    // Раньше весь список кликов считался заранее; если сервер вёл себя чуть иначе (не тот слот, лаг),
+    // всё дальше шло вкривь и вкось. Теперь каждый шаг смотрит на реальное содержимое слотов.
+
+    private static ScreenHandler sortHandler = null;
+    private static List<Slot> sortSlots = null;
+    private static int[] sortOrd = null;
+    private static List<ItemStack> sortWant = null;
+    private static boolean merging = true;
+    private static int sortSteps = 0;
+
+    public static boolean busy() {
+        return sortHandler != null || !QUEUE.isEmpty() || !DROPS.isEmpty();
+    }
+
     /** horizontal=true: заполнять строка за строкой; false: столбец за столбцом. */
     public static void start(MinecraftClient client, boolean container, boolean horizontal) {
-        if (client.player == null || !QUEUE.isEmpty()) return;
+        if (client.player == null || busy()) return;
         if (!(client.currentScreen instanceof HandledScreen<?>)) return;
         if (container && !isContainerScreen(client.currentScreen)) return;
         ScreenHandler handler = client.player.currentScreenHandler;
@@ -206,11 +165,111 @@ public class InventorySort {
             }
         }
         if (slots.isEmpty() || slots.size() % 9 != 0) return;
+        int n = slots.size(), rows = n / 9;
+        int[] ord = new int[n];
+        int k = 0;
+        if (horizontal) {
+            for (int i = 0; i < n; i++) ord[k++] = i;
+        } else {
+            for (int c = 0; c < 9; c++) for (int r = 0; r < rows; r++) ord[k++] = r * 9 + c;
+        }
+        sortHandler = handler;
+        sortSlots = slots;
+        sortOrd = ord;
+        sortWant = null;
+        merging = true;
+        sortSteps = 0;
+    }
 
-        List<Integer> plan = plan(slots, horizontal);
-        if (plan.isEmpty()) return;
-        taskHandler = handler;
-        QUEUE.addAll(plan);
+    private static void stopSort(MinecraftClient client, String msg) {
+        if (sortHandler != null && client.player != null && client.player.currentScreenHandler == sortHandler) {
+            putBackCursor(client, sortHandler, sortSlots);
+        }
+        sortHandler = null;
+        sortSlots = null;
+        sortWant = null;
+        if (msg != null && client.player != null) client.player.sendMessage(Text.literal(msg), true);
+    }
+
+    /** Если в «руке» (курсоре) что-то осталось — кладём в первый пустой слот, чтобы ничего не потерялось. */
+    private static void putBackCursor(MinecraftClient client, ScreenHandler h, List<Slot> prefer) {
+        if (h.getCursorStack().isEmpty()) return;
+        if (prefer != null) {
+            for (Slot s : prefer) {
+                if (!s.hasStack() && s.canInsert(h.getCursorStack())) {
+                    client.interactionManager.clickSlot(h.syncId, s.id, 0, SlotActionType.PICKUP, client.player);
+                    if (h.getCursorStack().isEmpty()) return;
+                }
+            }
+        }
+        for (Slot s : h.slots) {
+            if (s.inventory == client.player.getInventory() && !s.hasStack() && s.getIndex() < 36) {
+                client.interactionManager.clickSlot(h.syncId, s.id, 0, SlotActionType.PICKUP, client.player);
+                if (h.getCursorStack().isEmpty()) return;
+            }
+        }
+    }
+
+    private static void pick(MinecraftClient client, Slot s) {
+        client.interactionManager.clickSlot(sortHandler.syncId, s.id, 0, SlotActionType.PICKUP, client.player);
+    }
+
+    /** Один шаг сортировки. false — всё готово (или прервано). */
+    private static boolean sortStep(MinecraftClient client) {
+        List<Slot> slots = sortSlots;
+        int n = slots.size();
+        if (!sortHandler.getCursorStack().isEmpty()) {
+            putBackCursor(client, sortHandler, slots);
+            if (!sortHandler.getCursorStack().isEmpty()) {
+                stopSort(client, I18n.t("Сортировка остановлена: некуда положить предмет"));
+                return false;
+            }
+        }
+        if (merging) {
+            // склеиваем неполные одинаковые стаки
+            for (int a = 0; a < n; a++) {
+                Slot si = slots.get(sortOrd[a]);
+                ItemStack x = si.getStack();
+                if (x.isEmpty() || x.getCount() >= x.getMaxCount()) continue;
+                for (int b = a + 1; b < n; b++) {
+                    Slot sj = slots.get(sortOrd[b]);
+                    ItemStack y = sj.getStack();
+                    if (y.isEmpty() || !ItemStack.areItemsAndComponentsEqual(x, y)) continue;
+                    pick(client, sj);
+                    pick(client, si);
+                    if (!sortHandler.getCursorStack().isEmpty()) pick(client, sj);
+                    return true;
+                }
+            }
+            merging = false;
+            sortWant = new ArrayList<>();
+            for (Slot s : slots) if (s.hasStack()) sortWant.add(s.getStack().copy());
+            sortWant.sort(Comparator
+                    .comparing((ItemStack s) -> Registries.ITEM.getId(s.getItem()).toString())
+                    .thenComparing(s -> s.getName().getString())
+                    .thenComparingInt(s -> -s.getCount()));
+        }
+        for (int p = 0; p < n; p++) {
+            Slot dst = slots.get(sortOrd[p]);
+            ItemStack w = p < sortWant.size() ? sortWant.get(p) : ItemStack.EMPTY;
+            if (w.isEmpty()) return false; // дальше только пустые — готово
+            if (ItemStack.areEqual(dst.getStack(), w)) continue;
+            Slot src = null;
+            for (int q = p + 1; q < n; q++) {
+                Slot c = slots.get(sortOrd[q]);
+                if (ItemStack.areEqual(c.getStack(), w)) { src = c; break; }
+            }
+            if (src == null) {
+                // содержимое изменилось (сервер, другой игрок) — пересчитываем порядок
+                merging = true;
+                return ++sortSteps < 2000;
+            }
+            pick(client, src);
+            pick(client, dst);
+            if (!sortHandler.getCursorStack().isEmpty()) pick(client, src);
+            return ++sortSteps < 2000;
+        }
+        return false;
     }
 
     // ---------- Перенос между контейнером и инвентарём ----------
@@ -221,7 +280,7 @@ public class InventorySort {
      * sameAsHeld: переносить только предметы того же вида, что в руке (выбранный слот хотбара).
      */
     public static void startMove(MinecraftClient client, boolean fromContainer, boolean sameAsHeld) {
-        if (client.player == null || !QUEUE.isEmpty()) return;
+        if (client.player == null || busy()) return;
         if (!isContainerScreen(client.currentScreen)) return;
         ScreenHandler handler = client.player.currentScreenHandler;
         if (handler == null || !handler.getCursorStack().isEmpty()) return;
@@ -334,77 +393,5 @@ public class InventorySort {
             sim[idx] = cur;
             cursor[0] = s;
         }
-    }
-
-    private static List<Integer> plan(List<Slot> slots, boolean horizontal) {
-        int n = slots.size();
-        int rows = n / 9;
-        ItemStack[] sim = new ItemStack[n];
-        for (int i = 0; i < n; i++) sim[i] = slots.get(i).getStack().copy();
-        ItemStack[] cursor = {EMPTY};
-
-        int[] ord = new int[n];
-        int k = 0;
-        if (horizontal) {
-            for (int i = 0; i < n; i++) ord[k++] = i;
-        } else {
-            for (int c = 0; c < 9; c++) for (int r = 0; r < rows; r++) ord[k++] = r * 9 + c;
-        }
-
-        List<Integer> clicks = new ArrayList<>();
-
-        // 1) Склеиваем одинаковые стаки
-        for (int a = 0; a < n; a++) {
-            int i = ord[a];
-            if (sim[i].isEmpty() || sim[i].getCount() >= sim[i].getMaxCount()) continue;
-            for (int b = a + 1; b < n; b++) {
-                int j = ord[b];
-                if (sim[j].isEmpty() || !ItemStack.areItemsAndComponentsEqual(sim[i], sim[j])) continue;
-                clicks.add(slots.get(j).id);
-                click(sim, cursor, j);
-                clicks.add(slots.get(i).id);
-                click(sim, cursor, i);
-                if (!cursor[0].isEmpty()) {
-                    clicks.add(slots.get(j).id);
-                    click(sim, cursor, j);
-                }
-                if (sim[i].getCount() >= sim[i].getMaxCount()) break;
-            }
-        }
-
-        // 2) Нужный порядок
-        List<ItemStack> want = new ArrayList<>();
-        for (ItemStack s : sim) if (!s.isEmpty()) want.add(s.copy());
-        want.sort(Comparator
-                .comparing((ItemStack s) -> Registries.ITEM.getId(s.getItem()).toString())
-                .thenComparingInt(s -> -s.getCount()));
-
-        for (int p = 0; p < want.size(); p++) {
-            int pos = ord[p];
-            ItemStack w = want.get(p);
-            if (ItemStack.areEqual(sim[pos], w)) continue;
-            int src = -1;
-            for (int q = p + 1; q < n; q++) {
-                if (ItemStack.areEqual(sim[ord[q]], w)) { src = ord[q]; break; }
-            }
-            if (src < 0) return new ArrayList<>();
-            clicks.add(slots.get(src).id);
-            click(sim, cursor, src);
-            clicks.add(slots.get(pos).id);
-            click(sim, cursor, pos);
-            if (!cursor[0].isEmpty()) {
-                clicks.add(slots.get(src).id);
-                click(sim, cursor, src);
-            }
-            if (clicks.size() > 800) return new ArrayList<>();
-        }
-
-        // Проверка: итог должен совпасть с задуманным, иначе ничего не делаем
-        if (!cursor[0].isEmpty()) return new ArrayList<>();
-        for (int p = 0; p < n; p++) {
-            ItemStack expect = p < want.size() ? want.get(p) : EMPTY;
-            if (!ItemStack.areEqual(sim[ord[p]], expect)) return new ArrayList<>();
-        }
-        return clicks;
     }
 }

@@ -140,8 +140,23 @@ public class ValueSystem {
 
     /** Самое ценное правило для предмета (для значка и подсказки). */
     public static Rule best(ItemStack st) {
+        if (st.isEmpty() || rules.isEmpty()) return null;
+        // сначала дешёвая проверка id, имя/модель считаем только если id совпал
+        String id = itemId(st);
         Rule b = null;
-        for (Rule r : rules) if (matches(r, st) && (b == null || r.tier > b.tier)) b = r;
+        String name = null, model = null, cmd = null;
+        for (Rule r : rules) {
+            if (!r.enabled || !r.item.equals(id) || (b != null && r.tier <= b.tier)) continue;
+            if (r.exact) {
+                if (name == null) {
+                    name = nameOf(st);
+                    model = modelOf(st);
+                    cmd = cmdOf(st);
+                }
+                if (!r.name.equals(name) || !r.model.equals(model) || !r.cmd.equals(cmd)) continue;
+            }
+            b = r;
+        }
         return b;
     }
 
@@ -156,30 +171,6 @@ public class ValueSystem {
 
     public static void register() {
         load();
-        // кнопка ★ «забрать ценное» в сундуке/шалкере и в своём инвентаре
-        net.fabricmc.fabric.api.client.screen.v1.ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
-            int bx, by;
-            if (screen instanceof net.minecraft.client.gui.screen.ingame.GenericContainerScreen gs) {
-                int rows = (gs.getScreenHandler().slots.size() - 36) / 9;
-                int bh = 114 + rows * 18;
-                bx = (w - 176) / 2 + 176 + 3; // справа от окна: в шапке сундука места нет (название и кнопки)
-                by = (h - bh) / 2 + 4;
-            } else if (screen instanceof net.minecraft.client.gui.screen.ingame.ShulkerBoxScreen) {
-                bx = (w - 176) / 2 + 176 + 3;
-                by = (h - 166) / 2 + 4;
-            } else if (screen instanceof net.minecraft.client.gui.screen.ingame.InventoryScreen) {
-                bx = (w - 176) / 2 + 176 - 50;
-                by = (h - 166) / 2 + 166 - 97;
-            } else {
-                return;
-            }
-            net.fabricmc.fabric.api.client.screen.v1.Screens.getButtons(screen).add(
-                    net.minecraft.client.gui.widget.ButtonWidget.builder(Text.literal("★"), b -> start(client, true))
-                            .dimensions(bx, by, 14, 12)
-                            .tooltip(net.minecraft.client.gui.tooltip.Tooltip.of(Text.literal(
-                                    I18n.t("Забрать ценное в его слоты (система ценности)"))))
-                            .build());
-        });
         ItemTooltipCallback.EVENT.register((stack, context, type, lines) -> {
             Rule r = best(stack);
             if (r == null) return;

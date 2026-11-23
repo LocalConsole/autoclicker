@@ -74,8 +74,22 @@ public class Waypoints {
     }
 
     /** Ключ мира: адрес сервера или имя одиночного мира. У каждого — свои метки. */
+    private static Object keyWorld = null;
+    private static String keyCache = "?";
+
     public static String worldKey(MinecraftClient mc) {
         if (mc == null) return "?";
+        // ключ меняется только при смене мира — считаем один раз, а не на каждую метку каждый кадр
+        if (mc.world != null && mc.world == keyWorld) return keyCache;
+        String k = computeKey(mc);
+        if (mc.world != null) {
+            keyWorld = mc.world;
+            keyCache = k;
+        }
+        return k;
+    }
+
+    private static String computeKey(MinecraftClient mc) {
         try {
             var se = mc.getCurrentServerEntry();
             if (se != null && se.address != null) return "mp:" + se.address.toLowerCase(java.util.Locale.ROOT);

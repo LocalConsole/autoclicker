@@ -681,6 +681,12 @@ public class SchematicTool {
         return w.getChunkManager().isChunkLoaded(p.getX() >> 4, p.getZ() >> 4);
     }
 
+    private static int refreshCount = 0;
+
+    /**
+     * Проверка мира. Для больших схем вся схема проверяется раз в 5 секунд, а в остальные разы —
+     * только блоки рядом с вами (в радиусе 64): так огромные схемы не грузят игру.
+     */
     private static void refresh(MinecraftClient mc) {
         rMissing.clear();
         rWrong.clear();
@@ -689,15 +695,26 @@ public class SchematicTool {
         rWrongWant.clear();
         rWrongStateWant.clear();
         near.clear();
-        todo.clear();
-        if (!placedHere(mc)) return;
+        if (!placedHere(mc)) {
+            todo.clear();
+            return;
+        }
+        refreshCount++;
+        boolean full = ePos.length <= 20000 || refreshCount % 10 == 1;
+        if (full) todo.clear();
         ClientWorld w = mc.world;
         Vec3d eye = mc.player.getEyePos();
         double reach = mc.player.getBlockInteractionRange() + 1.5;
+        double near2 = 64.0 * 64.0;
         int done = 0;
         int shown = 0;
         for (int i = 0; i < ePos.length; i++) {
-            BlockPos p = BlockPos.fromLong(ePos[i]);
+            long lp = ePos[i];
+            int bx = BlockPos.unpackLongX(lp), by = BlockPos.unpackLongY(lp), bz = BlockPos.unpackLongZ(lp);
+            double dx = bx + 0.5 - eye.x, dy = by + 0.5 - eye.y, dz = bz + 0.5 - eye.z;
+            double d2 = dx * dx + dy * dy + dz * dz;
+            if (!full && d2 > near2) continue; // дальние блоки — только в полной проверке
+            BlockPos p = BlockPos.fromLong(lp);
             if (!loaded(w, p)) continue;
             BlockState want = eState[i];
             BlockState have = w.getBlockState(p);
@@ -705,32 +722,41 @@ public class SchematicTool {
                 done++;
                 continue;
             }
-            double d2 = eye.squaredDistanceTo(p.getX() + 0.5, p.getY() + 0.5, p.getZ() + 0.5);
             boolean visible = d2 < RENDER_RADIUS * RENDER_RADIUS && shown < RENDER_LIMIT;
             if (have.getBlock() == want.getBlock()) {
                 if (visible) { rWrongState.add(p); rWrongStateWant.add(want); shown++; }
             } else if (have.isReplaceable()) {
                 if (visible) { rMissing.add(p); rMissingState.add(want); shown++; }
                 if (d2 < reach * reach && !secondaryPart(want)) near.add(i);
-                if (!secondaryPart(want) && todo.size() < 50000) todo.add(i);
+                if (full && !secondaryPart(want) && todo.size() < 50000) todo.add(i);
             } else {
                 if (visible) { rWrong.add(p); rWrongWant.add(want); shown++; }
             }
         }
-        doneCount = done;
+        if (full) {
+            doneCount = done;
+            if (mode == 5) sortByYThenDist(todo, eye);
+        }
         buildSegments(mc);
-        // снизу вверх, потом ближние
-        java.util.Comparator<Integer> byYDist = (a, b) -> {
-            BlockPos pa = BlockPos.fromLong(ePos[a]), pb = BlockPos.fromLong(ePos[b]);
-            if (pa.getY() != pb.getY()) return Integer.compare(pa.getY(), pb.getY());
-            return Double.compare(eye.squaredDistanceTo(pa.toCenterPos()), eye.squaredDistanceTo(pb.toCenterPos()));
-        };
-        todo.sort(byYDist);
-        near.sort((a, b) -> {
-            BlockPos pa = BlockPos.fromLong(ePos[a]), pb = BlockPos.fromLong(ePos[b]);
-            if (pa.getY() != pb.getY()) return Integer.compare(pa.getY(), pb.getY());
-            return Double.compare(eye.squaredDistanceTo(pa.toCenterPos()), eye.squaredDistanceTo(pb.toCenterPos()));
-        });
+        sortByYThenDist(near, eye);
+    }
+
+    /** Снизу вверх, потом ближние. Сортируем числа, без лишних объектов. */
+    private static void sortByYThenDist(List<Integer> list, Vec3d eye) {
+        int n = list.size();
+        if (n < 2) return;
+        long[] keys = new long[n];
+        for (int j = 0; j < n; j++) {
+            long lp = ePos[list.get(j)];
+            int y = BlockPos.unpackLongY(lp) + 4096;
+            double dx = BlockPos.unpackLongX(lp) + 0.5 - eye.x, dz = BlockPos.unpackLongZ(lp) + 0.5 - eye.z;
+            double dy = BlockPos.unpackLongY(lp) + 0.5 - eye.y;
+            long d2 = Math.min((1L << 29) - 1, (long) (dx * dx + dy * dy + dz * dz));
+            keys[j] = ((long) (y & 0x1FFF) << 50) | (d2 << 21) | j;
+        }
+        java.util.Arrays.sort(keys);
+        List<Integer> copy = new ArrayList<>(list);
+        for (int j = 0; j < n; j++) list.set(j, copy.get((int) (keys[j] & ((1 << 21) - 1))));
     }
 
     // ---------- Вставка в креативе ----------

@@ -17,7 +17,8 @@
     "HandledScreenMixin",
     "ParticleManagerMixin",
     "WorldRendererMixin",
-    "SplashOverlayMixin"
+    "SplashOverlayMixin",
+    "HandledScreenAccessor"
   ],
   "injectors": {
     "defaultRequire": 1

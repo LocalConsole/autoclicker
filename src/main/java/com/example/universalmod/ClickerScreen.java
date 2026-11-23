@@ -36,7 +36,8 @@ public class ClickerScreen extends Screen {
             K_FARM = 39, K_ACCURATE = 40, K_CHEST_ESP = 41, K_FREECAM = 42,
             K_SCHEM_MODE = 43, K_SCHEM_SAVE = 44, K_SCHEM_ROT = 45, K_SCHEM_MENU = 46, K_SCHEM_BUILD = 47,
             K_TRAJ = 48, K_SHIELD = 49, K_LAVA = 50, K_WATER = 51, K_SCHEM_LIST = 52,
-            K_VALUE_MARK = 53, K_VALUE_TAKE = 54, K_VALUE_MENU = 55;
+            K_VALUE_MARK = 53, K_VALUE_TAKE = 54, K_VALUE_MENU = 55,
+            K_WORLDMAP = 56, K_MINIMAP = 57, K_MM_ZOOM = 58, K_MM_IN = 59, K_MM_OUT = 60;
 
     private static class Entry {
         int y;
@@ -84,7 +85,7 @@ public class ClickerScreen extends Screen {
     private boolean prevCollapsed = false;
 
     /** Вкладки (классы настроек): не раскрываются, переключают, какие разделы показаны. Помним, пока запущена игра. */
-    private static final String[] TABS = {"Прочее", "Авто", "ПвП", "Мир", "Инвентарь", "Вид", "Схемы"};
+    private static final String[] TABS = {"Прочее", "Авто", "ПвП", "Мир", "Инвентарь", "Вид", "Схемы", "Карта"};
     private static int tab = -1; // берётся из настроек при первом открытии
     private final List<ButtonWidget> tabButtons = new ArrayList<>();
 
@@ -108,6 +109,9 @@ public class ClickerScreen extends Screen {
                 return 1;
             case "Схемы (как Litematica)":
                 return 6;
+            case "Миникарта":
+            case "Карта мира":
+                return 7;
             case "Траектория снарядов":
             case "Авто-снос щита":
             case "Вёдра":
@@ -301,7 +305,7 @@ public class ClickerScreen extends Screen {
         viewTop = 54;
         viewBottom = this.height - 34;
         tabButtons.clear();
-        int tabsW = Math.min(this.width - 20, 440);
+        int tabsW = Math.min(this.width - 20, 540);
         int tabX = (this.width - tabsW) / 2;
         for (int i = 0; i < TABS.length; i++) {
             final int idx = i;
@@ -624,6 +628,50 @@ public class ClickerScreen extends Screen {
         toggle("Кнопка «Моды» в меню", () -> ClickerConfig.modsButton,
                 () -> ClickerConfig.modsButton = !ClickerConfig.modsButton, -1);
 
+        section("Миникарта");
+        toggle("Показывать миникарту", () -> ClickerConfig.mmShow,
+                () -> ClickerConfig.mmShow = !ClickerConfig.mmShow, K_MINIMAP);
+        sliderNamed("Где на экране", Minimap.CORNERS, ClickerConfig.mmCorner, v -> ClickerConfig.mmCorner = v);
+        slider("Размер миникарты", I18n.t(" пикс."), 48, 256, ClickerConfig.mmSize, v -> ClickerConfig.mmSize = v);
+        slider("Отступ от края по X", "", 0, 100, Math.min(100, ClickerConfig.mmOffX), v -> ClickerConfig.mmOffX = v);
+        slider("Отступ от края по Y", "", 0, 100, Math.min(100, ClickerConfig.mmOffY), v -> ClickerConfig.mmOffY = v);
+        sliderNamed("Масштаб миникарты", Minimap.ZOOM_NAMES, ClickerConfig.mmZoom, v -> ClickerConfig.mmZoom = v);
+        labelRow("Миникарта: масштаб", K_MM_ZOOM);
+        labelRow("Миникарта: ближе", K_MM_IN);
+        labelRow("Миникарта: дальше", K_MM_OUT);
+        sliderNamed("Форма", Minimap.SHAPES, ClickerConfig.mmShape, v -> ClickerConfig.mmShape = v);
+        toggle("Поворачивать вместе с игроком", () -> ClickerConfig.mmRotate,
+                () -> ClickerConfig.mmRotate = !ClickerConfig.mmRotate, -1);
+        sliderNamed("Пещерный режим", Minimap.CAVE, ClickerConfig.mmCave, v -> ClickerConfig.mmCave = v);
+        toggle("Координаты под картой", () -> ClickerConfig.mmCoords,
+                () -> ClickerConfig.mmCoords = !ClickerConfig.mmCoords, -1);
+        toggle("Пересчёт Незер / Верхний мир", () -> ClickerConfig.mmConvert,
+                () -> ClickerConfig.mmConvert = !ClickerConfig.mmConvert, -1);
+        toggle("Название биома", () -> ClickerConfig.mmBiome,
+                () -> ClickerConfig.mmBiome = !ClickerConfig.mmBiome, -1);
+        toggle("Метки на миникарте", () -> ClickerConfig.mmWaypoints,
+                () -> ClickerConfig.mmWaypoints = !ClickerConfig.mmWaypoints, -1);
+        toggle("Игроки", () -> ClickerConfig.mmPlayers, () -> ClickerConfig.mmPlayers = !ClickerConfig.mmPlayers, -1);
+        toggle("Враждебные мобы", () -> ClickerConfig.mmMobs, () -> ClickerConfig.mmMobs = !ClickerConfig.mmMobs, -1);
+        toggle("Животные", () -> ClickerConfig.mmAnimals, () -> ClickerConfig.mmAnimals = !ClickerConfig.mmAnimals, -1);
+        toggle("Предметы на земле", () -> ClickerConfig.mmItems, () -> ClickerConfig.mmItems = !ClickerConfig.mmItems, -1);
+        toggle("Показывать, выше или ниже существо", () -> ClickerConfig.mmHeight,
+                () -> ClickerConfig.mmHeight = !ClickerConfig.mmHeight, -1);
+        toggle("Значки: лица игроков, мобы, предметы", () -> ClickerConfig.mmIcons,
+                () -> ClickerConfig.mmIcons = !ClickerConfig.mmIcons, -1);
+        slider("Размер значков", I18n.t(" пикс."), 4, 16, ClickerConfig.mmIconSize, v -> ClickerConfig.mmIconSize = v);
+        toggle("Число блоков выше/ниже", () -> ClickerConfig.mmHeightNum,
+                () -> ClickerConfig.mmHeightNum = !ClickerConfig.mmHeightNum, -1);
+
+        section("Карта мира");
+        row(ButtonWidget.builder(Text.literal(I18n.t("Открыть карту мира...")),
+                        b -> this.client.setScreen(new WorldMapScreen(this)))
+                .dimensions(x0, 0, wd(K_WORLDMAP), 20).build(), K_WORLDMAP);
+        toggle("Запоминать изученную местность", () -> ClickerConfig.mapRecord,
+                () -> ClickerConfig.mapRecord = !ClickerConfig.mapRecord, -1);
+        toggle("Открывать карту на себе", () -> ClickerConfig.mapCenterOnOpen,
+                () -> ClickerConfig.mapCenterOnOpen = !ClickerConfig.mapCenterOnOpen, -1);
+
         section("Ценность предметов");
         row(ButtonWidget.builder(Text.literal(I18n.t("Настроить ценность...")),
                         b -> this.client.setScreen(new ValueScreen(this)))
@@ -896,7 +944,16 @@ public class ClickerScreen extends Screen {
 
         int left = x0 - 6;
         int right = x0 + cw + 6;
-        context.fill(left, viewTop, right, viewBottom, 0x55000000);
+        // шапка и панель списка
+        context.fill(left - 1, viewTop - 1, right + 1, viewBottom + 1, 0xFF2E3742);
+        context.fill(left, viewTop, right, viewBottom, 0xE0161B21);
+        // подчёркивание активной вкладки
+        if (!searchQuery.trim().isEmpty()) {
+            // при поиске вкладки не важны — ничего не подчёркиваем
+        } else if (tab >= 0 && tab < tabButtons.size()) {
+            ButtonWidget tb = tabButtons.get(tab);
+            context.fill(tb.getX() + 2, tb.getY() + tb.getHeight(), tb.getX() + tb.getWidth() - 2, tb.getY() + tb.getHeight() + 2, 0xFFFFD866);
+        }
         context.enableScissor(left, viewTop, right, viewBottom);
         for (Entry e : entries) {
             int ey = viewTop + 4 + e.y - scroll;
@@ -979,6 +1036,14 @@ public class ClickerScreen extends Screen {
         }
     }
 
+    @Override
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
+        super.renderBackground(context, mouseX, mouseY, delta);
+        // шапка под поиском и вкладками
+        context.fill(0, 0, this.width, viewTop - 4, 0x66101418);
+        context.fill(0, viewTop - 5, this.width, viewTop - 4, 0x33FFFFFF);
+    }
+
     /** Значок раздела — чтобы сразу было видно, про что он. */
     private static net.minecraft.item.Item sectionIcon(String t) {
         if (t == null) return null;
@@ -1012,6 +1077,8 @@ public class ClickerScreen extends Screen {
             case "Авто-кристалл" -> net.minecraft.item.Items.END_CRYSTAL;
             case "Моды" -> net.minecraft.item.Items.CRAFTING_TABLE;
             case "Ценность предметов" -> net.minecraft.item.Items.NETHER_STAR;
+            case "Миникарта" -> net.minecraft.item.Items.FILLED_MAP;
+            case "Карта мира" -> net.minecraft.item.Items.CARTOGRAPHY_TABLE;
             case "Сортировка" -> net.minecraft.item.Items.BARREL;
             case "Зум" -> net.minecraft.item.Items.SPYGLASS;
             case "Поиск в контейнерах" -> net.minecraft.item.Items.SPYGLASS;

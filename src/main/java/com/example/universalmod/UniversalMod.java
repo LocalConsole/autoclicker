@@ -52,7 +52,8 @@ public class UniversalMod implements ClientModInitializer {
     private static KeyBinding zoomKey;
     private static KeyBinding freecamKey;
     private static KeyBinding schemModeKey, schemSaveKey, schemRotateKey, schemMenuKey, schemBuildKey,
-            trajectoryKey, shieldKey, lavaKey, waterKey, schemListKey, valueMarkKey, valueTakeKey, valueMenuKey;
+            trajectoryKey, shieldKey, lavaKey, waterKey, schemListKey, valueMarkKey, valueTakeKey, valueMenuKey,
+            worldMapKey, minimapKey, mmZoomKey, mmInKey, mmOutKey;
     private static KeyBinding refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, targetOutlineKey, modListKey, wpAddKey, wpMenuKey, rulerKey, rulerClearKey;
     private static KeyBinding sortContH, sortContV, sortInvH, sortInvV;
     private static KeyBinding swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey, farmKey;
@@ -178,6 +179,11 @@ public class UniversalMod implements ClientModInitializer {
         valueMarkKey = register("key.universal_mod.valuemark", category);
         valueTakeKey = register("key.universal_mod.valuetake", category);
         valueMenuKey = register("key.universal_mod.valuemenu", category);
+        worldMapKey = register("key.universal_mod.worldmap", category, GLFW.GLFW_KEY_M);
+        minimapKey = register("key.universal_mod.minimap", category);
+        mmZoomKey = register("key.universal_mod.minimapzoom", category);
+        mmInKey = register("key.universal_mod.minimapin", category);
+        mmOutKey = register("key.universal_mod.minimapout", category);
         ValueSystem.markKey = valueMarkKey;
         ValueSystem.takeKey = valueTakeKey;
 
@@ -194,7 +200,8 @@ public class UniversalMod implements ClientModInitializer {
                 accuratePlaceKey, chestEspKey, freecamKey,
                 schemModeKey, schemSaveKey, schemRotateKey, schemMenuKey, schemBuildKey,
                 trajectoryKey, shieldKey, lavaKey, waterKey, schemListKey,
-                valueMarkKey, valueTakeKey, valueMenuKey
+                valueMarkKey, valueTakeKey, valueMenuKey,
+                worldMapKey, minimapKey, mmZoomKey, mmInKey, mmOutKey
         };
 
         ChestEsp.register();
@@ -222,6 +229,8 @@ public class UniversalMod implements ClientModInitializer {
         SchematicTool.register();
         Trajectory.register();
         ValueSystem.register();
+        MapData.register();
+        Minimap.register();
         AutoBucket.register();
         SchematicScreen.register();
 
@@ -436,6 +445,7 @@ public class UniversalMod implements ClientModInitializer {
     private static void onTick(MinecraftClient client) {
         applyFullbright(client);
         applyNoHurtTilt(client);
+        MapData.tick(client);
 
         if (client.player == null) {
             Freecam.disable(client);
@@ -586,6 +596,24 @@ public class UniversalMod implements ClientModInitializer {
         while (schemRotateKey.wasPressed()) SchematicTool.keyRotate(client);
         while (schemMenuKey.wasPressed()) SchematicTool.keyMenu(client);
         while (schemBuildKey.wasPressed()) SchematicTool.keyBuild(client);
+        while (worldMapKey.wasPressed()) client.setScreen(new WorldMapScreen(client.currentScreen));
+        while (minimapKey.wasPressed()) {
+            ClickerConfig.mmShow = !ClickerConfig.mmShow;
+            ClickerConfig.save();
+            msg(client, I18n.t("Миникарта"), ClickerConfig.mmShow);
+        }
+        while (mmZoomKey.wasPressed()) {
+            Minimap.cycleZoom();
+            client.player.sendMessage(Text.literal(I18n.t("Масштаб миникарты: ") + I18n.t(Minimap.ZOOM_NAMES[ClickerConfig.mmZoom])), true);
+        }
+        while (mmInKey.wasPressed()) {
+            Minimap.zoomStep(1);
+            client.player.sendMessage(Text.literal(I18n.t("Масштаб миникарты: ") + Minimap.ZOOM_NAMES[ClickerConfig.mmZoom]), true);
+        }
+        while (mmOutKey.wasPressed()) {
+            Minimap.zoomStep(-1);
+            client.player.sendMessage(Text.literal(I18n.t("Масштаб миникарты: ") + Minimap.ZOOM_NAMES[ClickerConfig.mmZoom]), true);
+        }
         while (valueMenuKey.wasPressed()) client.setScreen(new ValueScreen(client.currentScreen));
         while (valueTakeKey.wasPressed()) ValueSystem.start(client, true);
         while (valueMarkKey.wasPressed()) {

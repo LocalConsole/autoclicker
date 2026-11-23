@@ -55,5 +55,10 @@
   "key.universal_mod.schemlist": "Schematic: list",
   "key.universal_mod.valuemark": "Value: mark item",
   "key.universal_mod.valuetake": "Value: take valuables",
-  "key.universal_mod.valuemenu": "Value: menu"
+  "key.universal_mod.valuemenu": "Value: menu",
+  "key.universal_mod.worldmap": "World map",
+  "key.universal_mod.minimap": "Minimap (toggle)",
+  "key.universal_mod.minimapzoom": "Minimap: zoom",
+  "key.universal_mod.minimapin": "Minimap: zoom in",
+  "key.universal_mod.minimapout": "Minimap: zoom out"
 }

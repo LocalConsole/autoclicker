@@ -55,5 +55,10 @@
   "key.universal_mod.schemlist": "Схема: список схем",
   "key.universal_mod.valuemark": "Ценность: отметить",
   "key.universal_mod.valuetake": "Ценность: забрать",
-  "key.universal_mod.valuemenu": "Ценность: меню"
+  "key.universal_mod.valuemenu": "Ценность: меню",
+  "key.universal_mod.worldmap": "Карта мира",
+  "key.universal_mod.minimap": "Миникарта (вкл/выкл)",
+  "key.universal_mod.minimapzoom": "Миникарта: масштаб",
+  "key.universal_mod.minimapin": "Миникарта: ближе",
+  "key.universal_mod.minimapout": "Миникарта: дальше"
 }
