@@ -195,6 +195,8 @@ public class LecternReroll {
             case WAIT_LOSE -> {
                 // ждём, пока подберётся кафедра и житель потеряет работу
                 boolean picked = count(p.getInventory()) > lecternsBefore || p.isCreative();
+                // не подобралась (инвентарь полон, далеко), но запасные кафедры есть — работаем дальше ими
+                if (!picked && timer > 30 && count(p.getInventory()) > 0) picked = true;
                 if (picked && !"librarian".equals(profession())) {
                     st = St.PLACE;
                     timer = 0;
