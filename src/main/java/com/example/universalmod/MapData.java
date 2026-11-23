@@ -158,6 +158,9 @@ public class MapData {
             if (rgb != 0) break;
         }
         if (rgb == 0 || st == null) return UNKNOWN;
+        // настоящий цвет травы/листвы/воды с учётом биома (как в игре), а не плоский цвет карты
+        m.set(x, y, z);
+        rgb = tinted(w, st, m, rgb);
         // вода: чем глубже, тем темнее
         FluidState fs = st.getFluidState();
         if (fs.isIn(FluidTags.WATER)) {
@@ -170,12 +173,14 @@ public class MapData {
                 yy--;
             }
             float f = 1.0f - Math.min(0.55f, depth * 0.05f);
-            return 0xFF000000 | shade(rgb, f);
+            return withHeight(shade(rgb, f), y);
         }
-        // рельеф: выше северного соседа — светлее, ниже — темнее (как на ванильной карте)
+        // рельеф: свет «с северо-запада». Склоны к свету светлее, от света темнее, плавно по высоте
         int north = w.getTopY(Heightmap.Type.WORLD_SURFACE, x, z - 1) - 1;
-        float f = y > north ? 1.12f : y < north ? 0.82f : 1.0f;
-        return 0xFF000000 | shade(rgb, f);
+        int west = w.getTopY(Heightmap.Type.WORLD_SURFACE, x - 1, z) - 1;
+        float diff = (y - north) + (y - west) * 0.6f;
+        float f = 1.0f + Math.max(-0.32f, Math.min(0.22f, diff * 0.07f));
+        return withHeight(shade(rgb, f), y);
     }
 
     /** Пещерный слой: первый пол с воздухом над ним, начиная с fromY вниз. */
@@ -192,9 +197,46 @@ public class MapData {
             if (!airAbove) continue;
             int rgb = st.getMapColor(w, m).color;
             float f = Math.max(0.45f, 1.0f - (fromY - y) * 0.03f);
-            return 0xFF000000 | shade(rgb, f);
+            return withHeight(shade(rgb, f), y);
         }
         return UNKNOWN;
+    }
+
+    /** Цвет с оттенком биома: трава, листва, вода, лианы. Снег на траве — без оттенка. */
+    private static int tinted(ClientWorld w, BlockState st, BlockPos pos, int mapRgb) {
+        try {
+            if (st.getProperties().contains(net.minecraft.state.property.Properties.SNOWY)
+                    && st.get(net.minecraft.state.property.Properties.SNOWY)) return mapRgb;
+            int tint = MinecraftClient.getInstance().getBlockColors().getColor(st, w, pos, 0);
+            if (tint == -1 || tint == 0xFFFFFF) {
+                if (st.getFluidState().isIn(FluidTags.WATER)) {
+                    tint = net.minecraft.client.color.world.BiomeColors.getWaterColor(w, pos);
+                } else {
+                    return mapRgb;
+                }
+            }
+            tint &= 0xFFFFFF;
+            // 75% оттенка биома + 25% цвета карты — сочно, но не кислотно
+            int r = (((tint >> 16) & 255) * 3 + ((mapRgb >> 16) & 255)) / 4;
+            int g = (((tint >> 8) & 255) * 3 + ((mapRgb >> 8) & 255)) / 4;
+            int b = ((tint & 255) * 3 + (mapRgb & 255)) / 4;
+            return (r << 16) | (g << 8) | b;
+        } catch (Throwable t) {
+            return mapRgb;
+        }
+    }
+
+    /**
+     * Цвет + высота в одном числе: в старшем байте — высота (y + 64), ниже — RGB.
+     * Высота нужна, чтобы рисовать ступеньки рельефа на крупной карте.
+     */
+    public static int withHeight(int rgb, int y) {
+        int h = Math.max(1, Math.min(255, y + 64));
+        return (h << 24) | (rgb & 0xFFFFFF);
+    }
+
+    public static int heightOf(int c) {
+        return (c >>> 24) - 64;
     }
 
     public static int shade(int rgb, float f) {

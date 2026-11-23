@@ -78,8 +78,14 @@ public class Minimap {
     private static void rebuild(MinecraftClient mc, int size) {
         ClientPlayerEntity p = mc.player;
         ClientWorld w = mc.world;
-        TEX.ensure(size, size);
+        // высокое разрешение: картинка в настоящих пикселях экрана, а не в «пикселях интерфейса»
+        double gui = mc.getWindow().getFramebufferWidth() / (double) Math.max(1, mc.getWindow().getScaledWidth());
+        int res = ClickerConfig.mmDetail ? (int) Math.min(384, Math.max(size, Math.round(size * gui))) : size;
+        if (caveNow) res = Math.min(res, size); // пещерный режим дорогой — без лишних пикселей
+        TEX.ensure(res, res);
         double k = zoom();
+        double per = size / (double) res;               // пикселей интерфейса на пиксель картинки
+        double texelsPerBlock = 1.0 / (k * per);
         double px = p.getX(), pz = p.getZ();
         boolean rot = ClickerConfig.mmRotate;
         float yaw = p.getYaw() * MathHelper.RADIANS_PER_DEGREE;
@@ -89,11 +95,10 @@ public class Minimap {
         double half = size / 2.0, r2 = half * half;
         int fromY = (int) Math.floor(p.getY()) + 1;
         BlockPos.Mutable m = new BlockPos.Mutable();
-        // в пещерном режиме один столбец на 2×2 пикселя — в 4 раза меньше работы
-        int step = caveNow ? 2 : 1;
-        for (int v = 0; v < size; v += step) {
-            for (int u = 0; u < size; u += step) {
-                double du = u + 0.5 - half, dv = v + 0.5 - half;
+        java.util.HashMap<Long, Integer> caveCache = caveNow ? new java.util.HashMap<>() : null;
+        for (int v = 0; v < res; v++) {
+            for (int u = 0; u < res; u++) {
+                double du = (u + 0.5) * per - half, dv = (v + 0.5) * per - half;
                 int c;
                 if (circle && du * du + dv * dv > r2) {
                     c = 0;
@@ -108,23 +113,18 @@ public class Minimap {
                     }
                     int bx = MathHelper.floor(wx), bz = MathHelper.floor(wz);
                     if (caveNow) {
-                        c = w.getChunkManager().isChunkLoaded(bx >> 4, bz >> 4) ? MapData.caveColor(w, bx, fromY, bz, m) : 0;
-                        if (c == 0) c = 0xFF101010;
-                    } else {
-                        c = MapData.colorAt(bx, bz);
-                        if (c == MapData.UNKNOWN) c = 0xFF16191D;
-                    }
-                }
-                for (int yy = v; yy < Math.min(size, v + step); yy++) {
-                    for (int xx = u; xx < Math.min(size, u + step); xx++) {
-                        int cc = c;
-                        if (circle && c != 0) {
-                            double a = xx + 0.5 - half, b = yy + 0.5 - half;
-                            if (a * a + b * b > r2) cc = 0;
+                        long key = ((long) bx << 32) | (bz & 0xFFFFFFFFL);
+                        Integer cc = caveCache.get(key);
+                        if (cc == null) {
+                            cc = w.getChunkManager().isChunkLoaded(bx >> 4, bz >> 4) ? MapData.caveColor(w, bx, fromY, bz, m) : 0;
+                            caveCache.put(key, cc);
                         }
-                        TEX.set(xx, yy, cc);
+                        c = cc == 0 ? 0xFF101010 : 0xFF000000 | (cc & 0xFFFFFF);
+                    } else {
+                        c = MapPainter.texel(wx, wz, texelsPerBlock, MapData.colorAt(bx, bz));
                     }
                 }
+                TEX.set(u, v, c);
             }
         }
         TEX.upload();
@@ -139,6 +139,8 @@ public class Minimap {
         MinecraftClient mc = MinecraftClient.getInstance();
         boxW = 0;
         if (!ClickerConfig.mmShow || mc.player == null || mc.world == null || mc.options.hudHidden) return;
+        // с открытым F3 карта мешает тексту отладки — прячем
+        if (mc.getDebugHud().shouldShowDebugHud()) return;
         ClientPlayerEntity p = mc.player;
         int size = Math.max(48, Math.min(256, ClickerConfig.mmSize));
         int sw = ctx.getScaledWindowWidth(), sh = ctx.getScaledWindowHeight();
@@ -186,7 +188,7 @@ public class Minimap {
         // не чаще ~30 раз в секунду, а в пещерном режиме (он дороже) — ~6 раз
         boolean settingsChanged = size != lastSize || ClickerConfig.mmZoom != lastZoom || ClickerConfig.mmShape != lastShape
                 || caveNow != lastCave || ClickerConfig.mmRotate != lastRotate;
-        if (need && !settingsChanged && now - lastBuild < (caveNow ? 160 : 33)) need = false;
+        if (need && !settingsChanged && now - lastBuild < (caveNow ? 160 : (ClickerConfig.mmDetail ? 50 : 33))) need = false;
         if (need) {
             rebuild(mc, size);
             lastSize = size;
@@ -202,10 +204,14 @@ public class Minimap {
         }
 
         boolean circle = ClickerConfig.mmShape == 1;
-        int border = caveNow ? 0xFF7A5BA8 : 0xFF2E3742;
+        int border = caveNow ? 0xFF7A5BA8 : 0xFF3A4552;
         if (circle) {
+            ring(ctx, x + size / 2 + 1, y + size / 2 + 2, size / 2 + 2, 0x66000000); // тень
+            ring(ctx, x + size / 2, y + size / 2, size / 2 + 2, 0xFF0E1216);
             ring(ctx, x + size / 2, y + size / 2, size / 2 + 1, border);
         } else {
+            ctx.fill(x, y + 2, x + size + 3, y + size + 4, 0x66000000); // тень
+            ctx.fill(x - 2, y - 2, x + size + 2, y + size + 2, 0xFF0E1216);
             ctx.fill(x - 1, y - 1, x + size + 1, y + size + 1, border);
         }
         TEX.draw(ctx, x, y, size, size);
@@ -258,16 +264,22 @@ public class Minimap {
                 double dy = e.getY() - p.getY();
                 int isz = Math.max(4, Math.min(16, ClickerConfig.mmIconSize));
                 // значок — лицо игрока, яйцо моба или сам предмет; рядом ▲/▼, если выше/ниже
+                // игроки и враги — полный размер, животные и предметы — чуть меньше: главное видно сразу
+                if (!(e instanceof PlayerEntity) && !(e instanceof Monster)) isz = Math.max(4, isz * 3 / 4);
                 EntityIcons.draw(ctx, e, ex, ey, isz, col, dy);
             }
         }
 
-        // север
-        double[] n = rot ? toScreen(0, -1, 1, true, fx, fz, rx, rz) : new double[]{0, -1};
-        double nl = Math.sqrt(n[0] * n[0] + n[1] * n[1]);
-        int nx = cx + (int) (n[0] / nl * (half - 6)), ny = cy + (int) (n[1] / nl * (half - 6));
-        ctx.fill(nx - 4, ny - 5, nx + 4, ny + 5, 0xAA000000);
-        ctx.drawCenteredTextWithShadow(mc.textRenderer, Text.literal("N"), nx, ny - 4, 0xFFFF5A5A);
+        // стороны света: N красным, остальные серым
+        String[] sides = {"N", "E", "S", "W"};
+        double[][] dirs = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+        for (int i = 0; i < 4; i++) {
+            double[] n = rot ? toScreen(dirs[i][0], dirs[i][1], 1, true, fx, fz, rx, rz) : new double[]{dirs[i][0], dirs[i][1]};
+            double nl = Math.sqrt(n[0] * n[0] + n[1] * n[1]);
+            int nx = cx + (int) (n[0] / nl * (half - 6)), ny = cy + (int) (n[1] / nl * (half - 6));
+            ctx.fill(nx - 4, ny - 5, nx + 4, ny + 5, 0x99000000);
+            ctx.drawCenteredTextWithShadow(mc.textRenderer, Text.literal(sides[i]), nx, ny - 4, i == 0 ? 0xFFFF5A5A : 0xFFB8C0C8);
+        }
 
         // стрелка игрока
         double ang = rot ? 0 : (p.getYaw() * MathHelper.RADIANS_PER_DEGREE);

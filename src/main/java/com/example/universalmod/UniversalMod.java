@@ -53,7 +53,7 @@ public class UniversalMod implements ClientModInitializer {
     private static KeyBinding freecamKey;
     private static KeyBinding schemModeKey, schemSaveKey, schemRotateKey, schemMenuKey, schemBuildKey,
             trajectoryKey, shieldKey, lavaKey, waterKey, schemListKey, valueMarkKey, valueTakeKey, valueMenuKey,
-            worldMapKey, minimapKey, mmZoomKey, mmInKey, mmOutKey;
+            worldMapKey, minimapKey, mmZoomKey, mmInKey, mmOutKey, helperKey, rerollKey;
     private static KeyBinding refillHotbarKey, refillOffhandKey, invisibleKey, framesKey, targetOutlineKey, modListKey, wpAddKey, wpMenuKey, rulerKey, rulerClearKey;
     private static KeyBinding sortContH, sortContV, sortInvH, sortInvV;
     private static KeyBinding swapSpearKey, swapMaceKey, swapElytraKey, hitboxKey, crystalKey, trapKey, farmKey;
@@ -184,6 +184,8 @@ public class UniversalMod implements ClientModInitializer {
         mmZoomKey = register("key.universal_mod.minimapzoom", category);
         mmInKey = register("key.universal_mod.minimapin", category);
         mmOutKey = register("key.universal_mod.minimapout", category);
+        helperKey = register("key.universal_mod.tradehelper", category);
+        rerollKey = register("key.universal_mod.lecternreroll", category);
         ValueSystem.markKey = valueMarkKey;
         ValueSystem.takeKey = valueTakeKey;
 
@@ -201,7 +203,7 @@ public class UniversalMod implements ClientModInitializer {
                 schemModeKey, schemSaveKey, schemRotateKey, schemMenuKey, schemBuildKey,
                 trajectoryKey, shieldKey, lavaKey, waterKey, schemListKey,
                 valueMarkKey, valueTakeKey, valueMenuKey,
-                worldMapKey, minimapKey, mmZoomKey, mmInKey, mmOutKey
+                worldMapKey, minimapKey, mmZoomKey, mmInKey, mmOutKey, helperKey, rerollKey
         };
 
         ChestEsp.register();
@@ -231,6 +233,9 @@ public class UniversalMod implements ClientModInitializer {
         ValueSystem.register();
         MapData.register();
         Minimap.register();
+        VillagerTrades.register();
+        LecternReroll.register();
+        AnvilHelper.register();
         AutoBucket.register();
         SchematicScreen.register();
 
@@ -469,6 +474,9 @@ public class UniversalMod implements ClientModInitializer {
         AutoDig.tick(client);
         AutoCrystal.tick(client);
         AutoBucket.tick(client);
+        InvisibleParticles.tick(client);
+        VillagerTrades.tick(client);
+        LecternReroll.tick(client);
         ValueSystem.tick(client);
         ShieldBreak.tick(client);
         InvisibleBlocks.tick(client);
@@ -614,6 +622,8 @@ public class UniversalMod implements ClientModInitializer {
             Minimap.zoomStep(-1);
             client.player.sendMessage(Text.literal(I18n.t("Масштаб миникарты: ") + Minimap.ZOOM_NAMES[ClickerConfig.mmZoom]), true);
         }
+        while (rerollKey.wasPressed()) LecternReroll.toggle(client);
+        while (helperKey.wasPressed()) client.setScreen(new TradeHelperScreen(client.currentScreen));
         while (valueMenuKey.wasPressed()) client.setScreen(new ValueScreen(client.currentScreen));
         while (valueTakeKey.wasPressed()) ValueSystem.start(client, true);
         while (valueMarkKey.wasPressed()) {

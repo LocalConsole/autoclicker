@@ -67,6 +67,7 @@ public class ClickerConfig {
     public static boolean invisLight = true;
     public static int invisRadius = 16;
     public static int invisParticle = 0;
+    public static int invisRate = 8;
     public static boolean showFrames = false;
     public static boolean frameSand = true;
     public static boolean frameGravel = true;
@@ -128,6 +129,7 @@ public class ClickerConfig {
     public static boolean swapReturn = true;
     /** Подсветка хитбокса цели в прицеле, когда оружие перезарядилось (цвет — из палитры меток). */
     public static boolean hitboxHighlight = true;
+    public static boolean hitboxAll = true;
     /** Прочность брони игрока под прицелом. */
     public static boolean targetArmorHud = true;
     /** Эффекты зелий с таймером и число тотемов на экране. */
@@ -158,6 +160,15 @@ public class ClickerConfig {
     /** Авто-лава под противника и ватердроп. */
     public static boolean autoLava = false;
     public static boolean autoWater = false;
+    public static boolean villagerHeads = true;
+    public static boolean villagerNext = true;
+    public static String villagerSearch = "";
+    public static String librarianWants = "";
+    public static int librarianMaxPrice = 64;
+    public static boolean enchantHelper = true;
+    public static String enchantTarget = "";
+    public static boolean anvilHelper = true;
+    public static int rerollMax = 500;
     public static boolean wpWorld = true;
     public static boolean valueAuto = true;
     public static int valueRetries = 3;
@@ -172,8 +183,9 @@ public class ClickerConfig {
     public static int mmOffX = 4;
     public static int mmOffY = 4;
     public static int mmZoom = 4;
-    public static int mmIconSize = 8;
+    public static int mmIconSize = 7;
     public static boolean mmIcons = true;
+    public static boolean mmDetail = true;
     public static boolean mmHeightNum = false;
     public static int mmShape = 0;
     public static boolean mmRotate = false;
@@ -264,6 +276,7 @@ public class ClickerConfig {
         boolean invisLight = true;
         int invisRadius = 16;
         int invisParticle = 0;
+        int invisRate = 8;
         boolean showFrames = false;
         boolean frameSand = true;
         boolean frameGravel = true;
@@ -315,6 +328,7 @@ public class ClickerConfig {
         boolean swapSpearLunge = false;
         boolean swapReturn = true;
         boolean hitboxHighlight = true;
+        boolean hitboxAll = true;
         boolean targetArmorHud = true;
         boolean effectsHud = true;
         boolean effectsTotems = true;
@@ -335,6 +349,15 @@ public class ClickerConfig {
         boolean shieldBreakReturn = true;
         boolean autoLava = false;
         boolean autoWater = false;
+        boolean villagerHeads = true;
+        boolean villagerNext = true;
+        String villagerSearch = "";
+        String librarianWants = "";
+        int librarianMaxPrice = 64;
+        boolean enchantHelper = true;
+        String enchantTarget = "";
+        boolean anvilHelper = true;
+        int rerollMax = 500;
         boolean wpWorld = true;
         boolean valueAuto = true;
         int valueRetries = 3;
@@ -350,8 +373,9 @@ public class ClickerConfig {
         int mmOffY = 4;
         int mmZoom = 4;
         int mmZoomV = 2;
-        int mmIconSize = 8;
+        int mmIconSize = 7;
         boolean mmIcons = true;
+        boolean mmDetail = true;
         boolean mmHeightNum = false;
         int mmShape = 0;
         boolean mmRotate = false;
@@ -516,6 +540,7 @@ public class ClickerConfig {
             invisLightColor = Math.max(0, Math.min(Waypoints.COLORS.length - 1, d.invisLightColor));
             invisOutline = d.invisOutline;
             invisMobs = d.invisMobs;
+            invisRate = d.invisRate <= 0 ? 8 : Math.max(1, Math.min(40, d.invisRate));
             targetOutlineColor = Math.max(0, Math.min(3, d.targetOutlineColor));
             invisParticle = Math.max(0, Math.min(InvisibleParticles.NAMES.length - 1, d.invisParticle));
             invisRadius = d.invisRadius <= 0 ? 16 : Math.max(4, Math.min(32, d.invisRadius));
@@ -535,6 +560,7 @@ public class ClickerConfig {
             swapSpearLunge = d.swapSpearLunge;
             swapReturn = d.swapReturn;
             hitboxHighlight = d.hitboxHighlight;
+            hitboxAll = d.hitboxAll;
             targetArmorHud = d.targetArmorHud;
             effectsHud = d.effectsHud;
             effectsTotems = d.effectsTotems;
@@ -555,6 +581,15 @@ public class ClickerConfig {
             shieldBreakReturn = d.shieldBreakReturn;
             autoLava = d.autoLava;
             autoWater = d.autoWater;
+            villagerHeads = d.villagerHeads;
+            villagerNext = d.villagerNext;
+            villagerSearch = d.villagerSearch == null ? "" : d.villagerSearch;
+            librarianWants = d.librarianWants == null ? "" : d.librarianWants;
+            librarianMaxPrice = d.librarianMaxPrice <= 0 ? 64 : Math.min(64, d.librarianMaxPrice);
+            enchantHelper = d.enchantHelper;
+            enchantTarget = d.enchantTarget == null ? "" : d.enchantTarget;
+            anvilHelper = d.anvilHelper;
+            rerollMax = d.rerollMax <= 0 ? 500 : Math.min(5000, d.rerollMax);
             wpWorld = d.wpWorld;
             valueAuto = d.valueAuto;
             valueCursor = d.valueCursor;
@@ -572,6 +607,7 @@ public class ClickerConfig {
             mmZoom = d.mmZoomV < 2 ? new int[]{2, 4, 6, 8}[Math.max(0, Math.min(3, d.mmZoom))] : Math.max(0, Math.min(10, d.mmZoom));
             mmIconSize = d.mmIconSize <= 0 ? 8 : Math.max(4, Math.min(16, d.mmIconSize));
             mmIcons = d.mmIcons;
+            mmDetail = d.mmDetail;
             mmHeightNum = d.mmHeightNum;
             mmShape = Math.max(0, Math.min(1, d.mmShape));
             mmRotate = d.mmRotate;
@@ -667,6 +703,7 @@ public class ClickerConfig {
         d.invisLight = invisLight;
         d.invisRadius = invisRadius;
         d.invisParticle = invisParticle;
+        d.invisRate = invisRate;
         d.showFrames = showFrames;
         d.frameSand = frameSand;
         d.frameGravel = frameGravel;
@@ -718,6 +755,7 @@ public class ClickerConfig {
         d.swapSpearLunge = swapSpearLunge;
         d.swapReturn = swapReturn;
         d.hitboxHighlight = hitboxHighlight;
+        d.hitboxAll = hitboxAll;
         d.targetArmorHud = targetArmorHud;
         d.effectsHud = effectsHud;
         d.effectsTotems = effectsTotems;
@@ -738,6 +776,15 @@ public class ClickerConfig {
         d.shieldBreakReturn = shieldBreakReturn;
         d.autoLava = autoLava;
         d.autoWater = autoWater;
+        d.villagerHeads = villagerHeads;
+        d.villagerNext = villagerNext;
+        d.villagerSearch = villagerSearch;
+        d.librarianWants = librarianWants;
+        d.librarianMaxPrice = librarianMaxPrice;
+        d.enchantHelper = enchantHelper;
+        d.enchantTarget = enchantTarget;
+        d.anvilHelper = anvilHelper;
+        d.rerollMax = rerollMax;
         d.wpWorld = wpWorld;
         d.valueAuto = valueAuto;
         d.valueRetries = valueRetries;
@@ -755,6 +802,7 @@ public class ClickerConfig {
         d.mmZoomV = 2;
         d.mmIconSize = mmIconSize;
         d.mmIcons = mmIcons;
+        d.mmDetail = mmDetail;
         d.mmHeightNum = mmHeightNum;
         d.mmShape = mmShape;
         d.mmRotate = mmRotate;

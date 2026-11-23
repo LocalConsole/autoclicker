@@ -60,5 +60,7 @@
   "key.universal_mod.minimap": "Minimap (toggle)",
   "key.universal_mod.minimapzoom": "Minimap: zoom",
   "key.universal_mod.minimapin": "Minimap: zoom in",
-  "key.universal_mod.minimapout": "Minimap: zoom out"
+  "key.universal_mod.minimapout": "Minimap: zoom out",
+  "key.universal_mod.tradehelper": "Villagers & enchanting",
+  "key.universal_mod.lecternreroll": "Librarian: auto reroll"
 }

@@ -60,5 +60,7 @@
   "key.universal_mod.minimap": "Миникарта (вкл/выкл)",
   "key.universal_mod.minimapzoom": "Миникарта: масштаб",
   "key.universal_mod.minimapin": "Миникарта: ближе",
-  "key.universal_mod.minimapout": "Миникарта: дальше"
+  "key.universal_mod.minimapout": "Миникарта: дальше",
+  "key.universal_mod.tradehelper": "Жители и зачарования",
+  "key.universal_mod.lecternreroll": "Библиотекарь: авто-перебор"
 }

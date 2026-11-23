@@ -129,6 +129,8 @@ public class WorldMapScreen extends Screen {
                 if (c == MapData.UNKNOWN) {
                     // неизвестное — тёмная клетка с лёгкой сеткой по чанкам
                     c = ((bx & 15) == 0 || (bz & 15) == 0) && scale <= 2 ? 0xFF1C2026 : 0xFF14171B;
+                } else {
+                    c = MapPainter.texel(camX + (u + 0.5 - half) * scale, wz, 1.0 / scale, c);
                 }
                 TEX.set(u, v, c);
             }

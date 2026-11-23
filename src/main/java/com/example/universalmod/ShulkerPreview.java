@@ -22,14 +22,19 @@ public class ShulkerPreview {
         ItemStack stack = focused.getStack();
         ContainerComponent c = stack.get(DataComponentTypes.CONTAINER);
         if (c == null) return;
-        DefaultedList<ItemStack> items = DefaultedList.ofSize(COLS * ROWS, ItemStack.EMPTY);
-        c.copyTo(items);
-        boolean any = false;
-        for (ItemStack s : items) if (!s.isEmpty()) { any = true; break; }
+        DefaultedList<ItemStack> all = DefaultedList.ofSize(COLS * ROWS, ItemStack.EMPTY);
+        c.copyTo(all);
+        // только занятые слоты — без пустых клеток
+        java.util.List<ItemStack> items = new java.util.ArrayList<>();
+        for (ItemStack s : all) if (!s.isEmpty()) items.add(s);
 
         MinecraftClient mc = MinecraftClient.getInstance();
         var tr = mc.textRenderer;
-        int w = COLS * CELL + 8, h = ROWS * CELL + 18;
+        int n = items.size();
+        int cols = Math.max(1, Math.min(COLS, n)), rows = Math.max(1, (n + COLS - 1) / COLS);
+        String title = stack.getName().getString();
+        int w = Math.max(cols * CELL + 8, Math.min(COLS * CELL + 8, tr.getWidth(title) + 8));
+        int h = (n == 0 ? 10 : rows * CELL) + 18;
         int sw = ctx.getScaledWindowWidth(), sh = ctx.getScaledWindowHeight();
         // над курсором (текстовая подсказка — справа-ниже от курсора), иначе — слева
         int x = mouseX + 8, y = mouseY - h - 18;
@@ -39,23 +44,20 @@ public class ShulkerPreview {
         }
         x = Math.max(2, Math.min(sw - w - 2, x));
 
-        int border = 0xFF7A5BA8;
-        ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, border);
+        ctx.fill(x - 1, y - 1, x + w + 1, y + h + 1, 0xFF7A5BA8);
         ctx.fill(x, y, x + w, y + h, 0xF0140F1C);
-        String title = tr.trimToWidth(stack.getName().getString(), w - 8);
-        ctx.drawTextWithShadow(tr, Text.literal(title), x + 4, y + 4, 0xFFFFFFFF);
+        ctx.drawTextWithShadow(tr, Text.literal(tr.trimToWidth(title, w - 8)), x + 4, y + 4, 0xFFFFFFFF);
         int gx = x + 4, gy = y + 14;
-        for (int i = 0; i < COLS * ROWS; i++) {
+        if (n == 0) {
+            ctx.drawTextWithShadow(tr, Text.literal(I18n.t("Пусто")), gx, gy + 1, 0xFF9AA4AE);
+            return;
+        }
+        for (int i = 0; i < n; i++) {
             int cx = gx + (i % COLS) * CELL, cy = gy + (i / COLS) * CELL;
             ctx.fill(cx, cy, cx + CELL - 1, cy + CELL - 1, 0xFF2A2236);
             ItemStack s = items.get(i);
-            if (s.isEmpty()) continue;
             ctx.drawItem(s, cx, cy);
             ctx.drawStackOverlay(tr, s, cx, cy);
-        }
-        if (!any) {
-            String e = I18n.t("Пусто");
-            ctx.drawCenteredTextWithShadow(tr, Text.literal(e), x + w / 2, gy + ROWS * CELL / 2 - 4, 0xFF9AA4AE);
         }
     }
 }

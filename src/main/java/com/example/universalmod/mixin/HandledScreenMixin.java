@@ -38,6 +38,7 @@ public abstract class HandledScreenMixin {
         com.example.universalmod.ContainerSearch.drawSlotMarks(context, ((HandledScreen<?>) (Object) this).getScreenHandler(), this.x, this.y);
         AutoRefill.drawScreenMarks(context, ((HandledScreen<?>) (Object) this).getScreenHandler(), this.x, this.y);
         com.example.universalmod.ValueSystem.drawMarks(context, ((HandledScreen<?>) (Object) this).getScreenHandler(), this.x, this.y);
+        com.example.universalmod.ScreenPanels.draw(context, (HandledScreen<?>) (Object) this, this.x, this.y);
         com.example.universalmod.ShulkerPreview.draw(context, this.focusedSlot, mouseX, mouseY);
     }
 

@@ -37,7 +37,7 @@ public class ClickerScreen extends Screen {
             K_SCHEM_MODE = 43, K_SCHEM_SAVE = 44, K_SCHEM_ROT = 45, K_SCHEM_MENU = 46, K_SCHEM_BUILD = 47,
             K_TRAJ = 48, K_SHIELD = 49, K_LAVA = 50, K_WATER = 51, K_SCHEM_LIST = 52,
             K_VALUE_MARK = 53, K_VALUE_TAKE = 54, K_VALUE_MENU = 55,
-            K_WORLDMAP = 56, K_MINIMAP = 57, K_MM_ZOOM = 58, K_MM_IN = 59, K_MM_OUT = 60;
+            K_WORLDMAP = 56, K_MINIMAP = 57, K_MM_ZOOM = 58, K_MM_IN = 59, K_MM_OUT = 60, K_HELPER = 61, K_REROLL = 62;
 
     private static class Entry {
         int y;
@@ -122,6 +122,7 @@ public class ClickerScreen extends Screen {
             case "Смена предмета в хотбаре":
             case "Частицы невидимости":
                 return 2;
+            case "Жители и зачарования":
             case "Метка смерти":
             case "Метки":
             case "Линейка":
@@ -491,6 +492,8 @@ public class ClickerScreen extends Screen {
         section("Частицы невидимости");
         sliderNamed("Частицы зелья невидимости", InvisibleParticles.NAMES, ClickerConfig.invisParticle,
                 v -> ClickerConfig.invisParticle = v);
+        slider("Частота частиц у невидимых", I18n.t(" в сек."), 1, 40, Math.max(1, Math.min(40, ClickerConfig.invisRate)),
+                v -> ClickerConfig.invisRate = v);
         toggle("Частицы невидимости у мобов", () -> ClickerConfig.invisMobs,
                 () -> ClickerConfig.invisMobs = !ClickerConfig.invisMobs, -1);
 
@@ -509,6 +512,21 @@ public class ClickerScreen extends Screen {
                 () -> ClickerConfig.slotDrag = !ClickerConfig.slotDrag, -1);
         toggle("Ctrl + Shift + клик: все такие же", () -> ClickerConfig.slotMatchAll,
                 () -> ClickerConfig.slotMatchAll = !ClickerConfig.slotMatchAll, -1);
+
+        section("Жители и зачарования");
+        row(ButtonWidget.builder(Text.literal(I18n.t("Открыть помощник...")),
+                        b -> this.client.setScreen(new TradeHelperScreen(this)))
+                .dimensions(x0, 0, wd(K_HELPER), 20).build(), K_HELPER);
+        labelRow("Библиотекарь: авто-перебор", K_REROLL);
+        slider("Предел попыток перебора", "", 50, 2000, Math.max(50, Math.min(2000, ClickerConfig.rerollMax)), v -> ClickerConfig.rerollMax = v);
+        toggle("Трейды жителей над головой", () -> ClickerConfig.villagerHeads,
+                () -> ClickerConfig.villagerHeads = !ClickerConfig.villagerHeads, -1);
+        toggle("Возможные трейды следующих уровней", () -> ClickerConfig.villagerNext,
+                () -> ClickerConfig.villagerNext = !ClickerConfig.villagerNext, -1);
+        toggle("Подсказки стола зачарований", () -> ClickerConfig.enchantHelper,
+                () -> ClickerConfig.enchantHelper = !ClickerConfig.enchantHelper, -1);
+        toggle("Подсказки наковальни", () -> ClickerConfig.anvilHelper,
+                () -> ClickerConfig.anvilHelper = !ClickerConfig.anvilHelper, -1);
 
         section("Метки");
         row(ButtonWidget.builder(Text.literal(I18n.t("Меню меток...")),
@@ -571,6 +589,8 @@ public class ClickerScreen extends Screen {
         section("Подсветка хитбокса цели");
         toggle("Подсвечивать хитбокс, когда можно бить", () -> ClickerConfig.hitboxHighlight,
                 () -> ClickerConfig.hitboxHighlight = !ClickerConfig.hitboxHighlight, K_HITBOX);
+        toggle("Все хитбоксы в досягаемости (не только в прицеле)", () -> ClickerConfig.hitboxAll,
+                () -> ClickerConfig.hitboxAll = !ClickerConfig.hitboxAll, -1);
         sliderNamed("Цвет хитбокса", Waypoints.COLOR_NAMES, ClickerConfig.hitboxColor,
                 v -> ClickerConfig.hitboxColor = v);
 
@@ -657,6 +677,8 @@ public class ClickerScreen extends Screen {
         toggle("Предметы на земле", () -> ClickerConfig.mmItems, () -> ClickerConfig.mmItems = !ClickerConfig.mmItems, -1);
         toggle("Показывать, выше или ниже существо", () -> ClickerConfig.mmHeight,
                 () -> ClickerConfig.mmHeight = !ClickerConfig.mmHeight, -1);
+        toggle("Высокая детализация (чёткие пиксели, рельеф)", () -> ClickerConfig.mmDetail,
+                () -> ClickerConfig.mmDetail = !ClickerConfig.mmDetail, -1);
         toggle("Значки: лица игроков, мобы, предметы", () -> ClickerConfig.mmIcons,
                 () -> ClickerConfig.mmIcons = !ClickerConfig.mmIcons, -1);
         slider("Размер значков", I18n.t(" пикс."), 4, 16, ClickerConfig.mmIconSize, v -> ClickerConfig.mmIconSize = v);
@@ -905,7 +927,12 @@ public class ClickerScreen extends Screen {
         }
         // Вне области списка (заголовок / кнопка «Готово») прокручиваемые элементы не нажимаются
         if (lastMouseY < viewTop || lastMouseY > viewBottom) {
-            if (searchField != null && searchField.mouseClicked(click, doubled)) return true;
+            // поле поиска: важно сделать его «фокусом» окна, иначе клик проходит, а набирать текст нельзя
+            if (searchField != null && searchField.isMouseOver(click.x(), click.y())) {
+                this.setFocused(searchField);
+                searchField.mouseClicked(click, doubled);
+                return true;
+            }
             for (ButtonWidget tb : tabButtons) {
                 if (tb.mouseClicked(click, doubled)) return true;
             }
@@ -1077,6 +1104,7 @@ public class ClickerScreen extends Screen {
             case "Авто-кристалл" -> net.minecraft.item.Items.END_CRYSTAL;
             case "Моды" -> net.minecraft.item.Items.CRAFTING_TABLE;
             case "Ценность предметов" -> net.minecraft.item.Items.NETHER_STAR;
+            case "Жители и зачарования" -> net.minecraft.item.Items.EMERALD;
             case "Миникарта" -> net.minecraft.item.Items.FILLED_MAP;
             case "Карта мира" -> net.minecraft.item.Items.CARTOGRAPHY_TABLE;
             case "Сортировка" -> net.minecraft.item.Items.BARREL;

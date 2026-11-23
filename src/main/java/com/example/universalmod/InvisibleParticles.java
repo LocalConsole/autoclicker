@@ -41,6 +41,33 @@ public class InvisibleParticles {
         return e == ParticleTypes.NOTE ? Math.random() : 0.0;
     }
 
+    /**
+     * Свои частицы вокруг невидимых — часто и ровно, а не как в игре (у невидимых игра пускает частицы
+     * очень редко, поэтому было непонятно, работает ли замена). Частота — в настройках.
+     * Важно: игра не сообщает клиенту эффекты чужих существ, поэтому смотрим на сам признак «невидим».
+     */
+    public static void tick(MinecraftClient mc) {
+        int idx = ClickerConfig.invisParticle;
+        if (idx <= 0 || mc.world == null || mc.player == null || mc.particleManager == null) return;
+        ParticleEffect r = effectFor(idx);
+        if (r == null) return;
+        double chance = Math.max(1, ClickerConfig.invisRate) / 20.0; // частиц в секунду → за тик
+        Box area = mc.player.getBoundingBox().expand(48);
+        for (LivingEntity e : mc.world.getEntitiesByClass(LivingEntity.class, area,
+                x -> x.isInvisible() && x != mc.player && (ClickerConfig.invisMobs || x instanceof PlayerEntity))) {
+            double n = chance;
+            while (n > 0) {
+                if (n < 1 && Math.random() >= n) break;
+                n -= 1;
+                Box b = e.getBoundingBox();
+                double x = b.minX + Math.random() * (b.maxX - b.minX);
+                double y = b.minY + Math.random() * (b.maxY - b.minY);
+                double z = b.minZ + Math.random() * (b.maxZ - b.minZ);
+                mc.particleManager.addParticle(r, x, y, z, velX(r), 0.02, 0.0);
+            }
+        }
+    }
+
     /** Чем заменить частицу, либо null — оставить как есть. */
     public static ParticleEffect replacement(ParticleEffect effect, double x, double y, double z) {
         int idx = ClickerConfig.invisParticle;
@@ -53,8 +80,7 @@ public class InvisibleParticles {
         // Ищем рядом с частицей существо с невидимостью: игрока, а при включённой настройке и любого моба
         Box near = new Box(x - 3.0, y - 3.0, z - 3.0, x + 3.0, y + 3.0, z + 3.0);
         List<LivingEntity> list = client.world.getEntitiesByClass(LivingEntity.class, near,
-                e -> e.hasStatusEffect(StatusEffects.INVISIBILITY)
-                        && (ClickerConfig.invisMobs || e instanceof PlayerEntity));
+                e -> e.isInvisible() && (ClickerConfig.invisMobs || e instanceof PlayerEntity));
         for (LivingEntity e : list) {
             if (e.getBoundingBox().expand(0.5).contains(x, y, z)) return r;
         }

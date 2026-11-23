@@ -103,6 +103,8 @@ public final class EntityIcons {
             } else if (e instanceof ItemEntity it) {
                 drawItemScaled(ctx, it.getStack(), x, y, size);
                 done = true;
+            } else if (MobFaces.draw(ctx, e, x, y, size)) {
+                done = true; // лицо моба из его текстуры
             } else {
                 ItemStack egg = egg(e.getType());
                 if (!egg.isEmpty()) {
@@ -116,17 +118,22 @@ public final class EntityIcons {
             ctx.fill(cx - r - 1, cy - r - 1, cx + r + 1, cy + r + 1, 0xFF000000);
             ctx.fill(cx - r, cy - r, cx + r, cy + r, fallback);
         }
-        // выше / ниже
+        // выше / ниже: маленький треугольник над/под значком (без текста — не загромождает карту)
         if (ClickerConfig.mmHeight && Math.abs(dy) > 3) {
-            MinecraftClient mc = MinecraftClient.getInstance();
             boolean up = dy > 0;
-            String a = up ? "▲" : "▼";
-            if (ClickerConfig.mmHeightNum) a += (up ? "+" : "") + (int) Math.round(dy);
-            int tw = mc.textRenderer.getWidth(a);
-            int tx = cx - tw / 2;
-            int ty = up ? y - 9 : y + size + 1;
-            ctx.fill(tx - 1, ty, tx + tw + 1, ty + 8, 0x99000000);
-            ctx.drawText(mc.textRenderer, Text.literal(a), tx, ty, up ? 0xFF7CF0FF : 0xFFFFB04C, false);
+            int col = up ? 0xFF7CF0FF : 0xFFFFB04C;
+            int tipY = up ? y - 4 : y + size + 3;
+            for (int i = 0; i < 3; i++) {
+                int row = up ? tipY + i : tipY - i;
+                ctx.fill(cx - i - 1, row, cx + i + 2, row + 1, 0xFF000000);
+                ctx.fill(cx - i, row, cx + i + 1, row + 1, col);
+            }
+            if (ClickerConfig.mmHeightNum) {
+                MinecraftClient mc = MinecraftClient.getInstance();
+                String a = (up ? "+" : "") + (int) Math.round(dy);
+                int ty = up ? tipY - 8 : tipY + 2;
+                ctx.drawText(mc.textRenderer, Text.literal(a), cx + 4, ty, col, true);
+            }
         }
     }
 
