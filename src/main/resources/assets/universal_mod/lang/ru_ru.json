@@ -62,5 +62,6 @@
   "key.universal_mod.minimapin": "Миникарта: ближе",
   "key.universal_mod.minimapout": "Миникарта: дальше",
   "key.universal_mod.tradehelper": "Жители и зачарования",
-  "key.universal_mod.lecternreroll": "Библиотекарь: авто-перебор"
+  "key.universal_mod.lecternreroll": "Библиотекарь: авто-перебор",
+  "key.universal_mod.invhud": "Инвентарь на экране"
 }

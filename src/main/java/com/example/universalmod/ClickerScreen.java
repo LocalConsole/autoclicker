@@ -37,7 +37,7 @@ public class ClickerScreen extends Screen {
             K_SCHEM_MODE = 43, K_SCHEM_SAVE = 44, K_SCHEM_ROT = 45, K_SCHEM_MENU = 46, K_SCHEM_BUILD = 47,
             K_TRAJ = 48, K_SHIELD = 49, K_LAVA = 50, K_WATER = 51, K_SCHEM_LIST = 52,
             K_VALUE_MARK = 53, K_VALUE_TAKE = 54, K_VALUE_MENU = 55,
-            K_WORLDMAP = 56, K_MINIMAP = 57, K_MM_ZOOM = 58, K_MM_IN = 59, K_MM_OUT = 60, K_HELPER = 61, K_REROLL = 62;
+            K_WORLDMAP = 56, K_MINIMAP = 57, K_MM_ZOOM = 58, K_MM_IN = 59, K_MM_OUT = 60, K_HELPER = 61, K_REROLL = 62, K_INVHUD = 63;
 
     private static class Entry {
         int y;
@@ -132,6 +132,7 @@ public class ClickerScreen extends Screen {
             case "Поиск в контейнерах":
                 return 3;
             case "Ценность предметов":
+            case "Инвентарь на экране":
             case "Счётчик предметов":
             case "Автозаполнение":
             case "Перемещение предметов":
@@ -589,8 +590,6 @@ public class ClickerScreen extends Screen {
         section("Подсветка хитбокса цели");
         toggle("Подсвечивать хитбокс, когда можно бить", () -> ClickerConfig.hitboxHighlight,
                 () -> ClickerConfig.hitboxHighlight = !ClickerConfig.hitboxHighlight, K_HITBOX);
-        toggle("Все хитбоксы в досягаемости (не только в прицеле)", () -> ClickerConfig.hitboxAll,
-                () -> ClickerConfig.hitboxAll = !ClickerConfig.hitboxAll, -1);
         sliderNamed("Цвет хитбокса", Waypoints.COLOR_NAMES, ClickerConfig.hitboxColor,
                 v -> ClickerConfig.hitboxColor = v);
 
@@ -677,6 +676,8 @@ public class ClickerScreen extends Screen {
         toggle("Предметы на земле", () -> ClickerConfig.mmItems, () -> ClickerConfig.mmItems = !ClickerConfig.mmItems, -1);
         toggle("Показывать, выше или ниже существо", () -> ClickerConfig.mmHeight,
                 () -> ClickerConfig.mmHeight = !ClickerConfig.mmHeight, -1);
+        toggle("Прятать миникарту при F3", () -> ClickerConfig.mmHideF3,
+                () -> ClickerConfig.mmHideF3 = !ClickerConfig.mmHideF3, -1);
         toggle("Высокая детализация (чёткие пиксели, рельеф)", () -> ClickerConfig.mmDetail,
                 () -> ClickerConfig.mmDetail = !ClickerConfig.mmDetail, -1);
         toggle("Значки: лица игроков, мобы, предметы", () -> ClickerConfig.mmIcons,
@@ -694,6 +695,29 @@ public class ClickerScreen extends Screen {
         toggle("Открывать карту на себе", () -> ClickerConfig.mapCenterOnOpen,
                 () -> ClickerConfig.mapCenterOnOpen = !ClickerConfig.mapCenterOnOpen, -1);
 
+        section("Инвентарь на экране");
+        toggle("Показывать инвентарь над хотбаром", () -> ClickerConfig.invHud,
+                () -> ClickerConfig.invHud = !ClickerConfig.invHud, K_INVHUD);
+        toggle("Только пока зажата клавиша", () -> ClickerConfig.invHudHold,
+                () -> ClickerConfig.invHudHold = !ClickerConfig.invHudHold, -1);
+        toggle("Прятать, если инвентарь пустой", () -> ClickerConfig.invHudHideEmpty,
+                () -> ClickerConfig.invHudHideEmpty = !ClickerConfig.invHudHideEmpty, -1);
+        toggle("Строка 1 (верхняя)", () -> ClickerConfig.invHudRows[0], () -> ClickerConfig.invHudRows[0] = !ClickerConfig.invHudRows[0], -1);
+        toggle("Строка 2", () -> ClickerConfig.invHudRows[1], () -> ClickerConfig.invHudRows[1] = !ClickerConfig.invHudRows[1], -1);
+        toggle("Строка 3", () -> ClickerConfig.invHudRows[2], () -> ClickerConfig.invHudRows[2] = !ClickerConfig.invHudRows[2], -1);
+        toggle("Хотбар тоже", () -> ClickerConfig.invHudRows[3], () -> ClickerConfig.invHudRows[3] = !ClickerConfig.invHudRows[3], -1);
+        toggle("Вертикально (столбцами)", () -> ClickerConfig.invHudVertical,
+                () -> ClickerConfig.invHudVertical = !ClickerConfig.invHudVertical, -1);
+        toggle("Каждую строку отдельно", () -> ClickerConfig.invHudSeparate,
+                () -> ClickerConfig.invHudSeparate = !ClickerConfig.invHudSeparate, -1);
+        row(ButtonWidget.builder(Text.literal(I18n.t("Переместить мышкой...")),
+                        b -> this.client.setScreen(new InventoryHudMoveScreen(this)))
+                .dimensions(x0, 0, cw, 20).build(), -1);
+        desc("Переместить мышкой...");
+        slider("Размер инвентаря на экране", "%", 50, 200, ClickerConfig.invHudScale, v -> ClickerConfig.invHudScale = v);
+        slider("Поднять выше", I18n.t(" пикс."), 0, 150, ClickerConfig.invHudOffset, v -> ClickerConfig.invHudOffset = v);
+        slider("Непрозрачность фона", "%", 10, 100, ClickerConfig.invHudOpacity, v -> ClickerConfig.invHudOpacity = v);
+
         section("Ценность предметов");
         row(ButtonWidget.builder(Text.literal(I18n.t("Настроить ценность...")),
                         b -> this.client.setScreen(new ValueScreen(this)))
@@ -709,6 +733,8 @@ public class ClickerScreen extends Screen {
         section("Сортировка");
         toggle("Кнопки сортировки в контейнере", () -> ClickerConfig.sortButtons,
                 () -> ClickerConfig.sortButtons = !ClickerConfig.sortButtons, -1);
+        toggle("Сортировка и перенос — вместе с хотбаром", () -> ClickerConfig.sortIncludeHotbar,
+                () -> ClickerConfig.sortIncludeHotbar = !ClickerConfig.sortIncludeHotbar, -1);
         toggle("Кнопки сортировки инвентаря", () -> ClickerConfig.sortInvButtons,
                 () -> ClickerConfig.sortInvButtons = !ClickerConfig.sortInvButtons, -1);
         slider("Скорость сортировки", " кл./тик", 1, 20, ClickerConfig.sortSpeed, v -> ClickerConfig.sortSpeed = v);
@@ -1106,6 +1132,7 @@ public class ClickerScreen extends Screen {
             case "Ценность предметов" -> net.minecraft.item.Items.NETHER_STAR;
             case "Жители и зачарования" -> net.minecraft.item.Items.EMERALD;
             case "Миникарта" -> net.minecraft.item.Items.FILLED_MAP;
+            case "Инвентарь на экране" -> net.minecraft.item.Items.CHEST_MINECART;
             case "Карта мира" -> net.minecraft.item.Items.CARTOGRAPHY_TABLE;
             case "Сортировка" -> net.minecraft.item.Items.BARREL;
             case "Зум" -> net.minecraft.item.Items.SPYGLASS;

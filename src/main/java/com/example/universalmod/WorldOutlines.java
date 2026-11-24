@@ -65,39 +65,18 @@ public class WorldOutlines {
     }
 
     /**
-     * Хитбоксы всех существ, до которых достаёт удар. Цвет показывает, можно ли бить:
-     * перезарядка идёт — от красного к жёлтому, удар полной силы — ваш цвет (по умолчанию зелёный).
-     * Под прицелом рамка толще. Рамка чуть больше настоящего хитбокса, чтобы её не перекрывали
-     * белые хитбоксы F3+B.
+     * Подсветка хитбокса: только у существа под прицелом и только когда удар будет полной силы.
+     * Рамка рисуется ровно по хитбоксу (как белый хитбокс F3+B, только вашим цветом и толще),
+     * а не отдельной коробкой поверх. Отвели прицел или идёт перезарядка — подсветки нет.
      */
     private static void drawHitboxes(MinecraftClient mc, MatrixStack m, VertexConsumer vc, Vec3d cp, float width) {
-        float cd = mc.player.getAttackCooldownProgress(0.0f);
-        int ready = color(ClickerConfig.hitboxColor);
-        int col;
-        if (cd >= 0.999f) {
-            col = ready;
-        } else {
-            // красный → жёлтый по мере перезарядки
-            int g = (int) (60 + 170 * cd);
-            col = 0xFFFF0000 | (g << 8) | 0x30;
-        }
-        Entity target = mc.crosshairTarget instanceof EntityHitResult ehr ? ehr.getEntity() : null;
-        double reach = mc.player.getEntityInteractionRange();
-        Vec3d eye = mc.player.getEyePos();
+        if (!(mc.crosshairTarget instanceof EntityHitResult ehr)) return;
+        if (mc.player.getAttackCooldownProgress(0.0f) < 1.0f) return;
+        Entity e = ehr.getEntity();
+        if (!e.isAlive()) return;
         float tp = mc.getRenderTickCounter().getTickProgress(false);
-        Box area = mc.player.getBoundingBox().expand(reach + 2);
-        for (Entity e : mc.world.getOtherEntities(mc.player, area, x -> x.isAlive() && x.canHit() && !x.isSpectator())) {
-            if (!ClickerConfig.hitboxAll && e != target) continue;
-            Vec3d shift = e.getLerpedPos(tp).subtract(e.getX(), e.getY(), e.getZ());
-            Box b = e.getBoundingBox().offset(shift);
-            // ближайшая точка хитбокса — в досягаемости удара?
-            double cx = Math.max(b.minX, Math.min(eye.x, b.maxX));
-            double cy = Math.max(b.minY, Math.min(eye.y, b.maxY));
-            double cz = Math.max(b.minZ, Math.min(eye.z, b.maxZ));
-            if (eye.squaredDistanceTo(cx, cy, cz) > reach * reach) continue;
-            boolean aimed = e == target;
-            drawBox(m, vc, b.expand(0.02), cp, aimed ? col : (col & 0x00FFFFFF) | 0xAA000000, aimed ? width * 1.6f : width);
-        }
+        Vec3d shift = e.getLerpedPos(tp).subtract(e.getX(), e.getY(), e.getZ());
+        drawBox(m, vc, e.getBoundingBox().offset(shift), cp, color(ClickerConfig.hitboxColor), width * 1.6f);
     }
 
     private static int color(int idx) {

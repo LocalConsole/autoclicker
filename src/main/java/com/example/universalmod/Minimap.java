@@ -140,7 +140,7 @@ public class Minimap {
         boxW = 0;
         if (!ClickerConfig.mmShow || mc.player == null || mc.world == null || mc.options.hudHidden) return;
         // с открытым F3 карта мешает тексту отладки — прячем
-        if (mc.getDebugHud().shouldShowDebugHud()) return;
+        if (ClickerConfig.mmHideF3 && mc.getDebugHud().shouldShowDebugHud()) return;
         ClientPlayerEntity p = mc.player;
         int size = Math.max(48, Math.min(256, ClickerConfig.mmSize));
         int sw = ctx.getScaledWindowWidth(), sh = ctx.getScaledWindowHeight();

@@ -62,5 +62,6 @@
   "key.universal_mod.minimapin": "Minimap: zoom in",
   "key.universal_mod.minimapout": "Minimap: zoom out",
   "key.universal_mod.tradehelper": "Villagers & enchanting",
-  "key.universal_mod.lecternreroll": "Librarian: auto reroll"
+  "key.universal_mod.lecternreroll": "Librarian: auto reroll",
+  "key.universal_mod.invhud": "Inventory HUD"
 }

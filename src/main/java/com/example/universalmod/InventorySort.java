@@ -160,7 +160,7 @@ public class InventorySort {
             boolean mine = s.inventory == client.player.getInventory();
             if (container && !mine) {
                 slots.add(s);
-            } else if (!container && mine && s.getIndex() >= 9 && s.getIndex() <= 35) {
+            } else if (!container && mine && s.getIndex() >= (ClickerConfig.sortIncludeHotbar ? 0 : 9) && s.getIndex() <= 35) {
                 slots.add(s);
             }
         }
@@ -299,7 +299,7 @@ public class InventorySort {
         List<Slot> invSlots = new ArrayList<>();
         for (Slot sl : handler.slots) {
             if (sl.inventory == client.player.getInventory()) {
-                if (sl.getIndex() >= 9 && sl.getIndex() <= 35) invSlots.add(sl);
+                if (sl.getIndex() >= (ClickerConfig.sortIncludeHotbar ? 0 : 9) && sl.getIndex() <= 35) invSlots.add(sl);
             } else {
                 containerSlots.add(sl);
             }
